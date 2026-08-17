@@ -1,0 +1,844 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Evidence-backed web measurement framework",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "document",
+    "sources",
+    "discovery_candidates",
+    "journeys",
+    "objective_considerations",
+    "objectives",
+    "kpi_considerations",
+    "kpis",
+    "dimensions",
+    "measurement_requirements",
+    "alignment",
+    "unlinked_measurements",
+    "assumptions",
+    "exceptions",
+    "quality_gates"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "document": {"$ref": "#/$defs/document"},
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/source"}
+    },
+    "discovery_candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/discoveryCandidate"}
+    },
+    "journeys": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/journey"}
+    },
+    "objective_considerations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/objectiveConsideration"}
+    },
+    "objectives": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/objective"}
+    },
+    "kpi_considerations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/kpiConsideration"}
+    },
+    "kpis": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/kpi"}
+    },
+    "dimensions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/dimension"}
+    },
+    "measurement_requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/measurementRequirement"}
+    },
+    "alignment": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/alignment"}
+    },
+    "unlinked_measurements": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/unlinkedMeasurement"}
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/assumption"}
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/exception"}
+    },
+    "quality_gates": {"$ref": "#/$defs/qualityGates"}
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,79}$"
+    },
+    "evidenceRef": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,79}(?:#.+)?$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "version",
+        "date",
+        "language",
+        "run_id",
+        "target_state",
+        "scope_claim",
+        "scope",
+        "target_sites"
+      ],
+      "properties": {
+        "title": {"$ref": "#/$defs/nonEmptyString"},
+        "version": {"$ref": "#/$defs/nonEmptyString"},
+        "date": {"type": "string", "format": "date"},
+        "language": {"type": "string", "pattern": "^[a-z]{2}(?:-[A-Z]{2})?$"},
+        "run_id": {"type": "string", "pattern": "^run_[a-f0-9]{32}$"},
+        "target_state": {"enum": ["as_is", "to_be", "hybrid"]},
+        "scope_claim": {"enum": ["whole_site", "journey_subset"]},
+        "scope": {"$ref": "#/$defs/nonEmptyString"},
+        "target_sites": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "uri"}
+        },
+        "markets": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "audiences": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "notes": {"type": "string"}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "source_type",
+        "reference",
+        "evidence_role",
+        "state",
+        "supports"
+      ],
+      "properties": {
+        "source_id": {"$ref": "#/$defs/id"},
+        "source_type": {
+          "enum": [
+            "live_website",
+            "test_website",
+            "user_input",
+            "business_document",
+            "design_specification",
+            "technical_specification",
+            "current_tracking",
+            "analytics_export",
+            "previous_framework",
+            "other"
+          ]
+        },
+        "reference": {"$ref": "#/$defs/nonEmptyString"},
+        "sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+        "evidence_role": {
+          "enum": [
+            "live_behavior",
+            "business_requirement",
+            "future_design",
+            "current_implementation",
+            "data_capability",
+            "historical_contract",
+            "data_usage"
+          ]
+        },
+        "state": {"enum": ["as_is", "to_be", "both"]},
+        "supports": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        }
+      }
+    },
+    "discoveryCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "candidate_type",
+        "label",
+        "material",
+        "evidence_refs",
+        "resolution",
+        "journey_ids",
+        "reason"
+      ],
+      "properties": {
+        "candidate_id": {"$ref": "#/$defs/id"},
+        "candidate_type": {
+          "enum": [
+            "expected_journey",
+            "navigation",
+            "page_template",
+            "cta",
+            "form",
+            "entry_point",
+            "conversion_endpoint",
+            "interaction_family",
+            "backend_lifecycle",
+            "other"
+          ]
+        },
+        "label": {"$ref": "#/$defs/nonEmptyString"},
+        "material": {"type": "boolean"},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "resolution": {"enum": ["mapped", "merged", "excluded", "unresolved"]},
+        "journey_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "reason": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "journeyStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_id", "name", "state", "status", "evidence_refs"],
+      "properties": {
+        "step_id": {"$ref": "#/$defs/id"},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "state": {
+          "enum": [
+            "entry",
+            "progression",
+            "success",
+            "failure",
+            "empty",
+            "reentry",
+            "post_conversion"
+          ]
+        },
+        "status": {
+          "enum": ["observed", "confirmed", "planned", "partial", "not_tested", "externally_blocked"]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "notes": {"type": "string"}
+      }
+    },
+    "journeyVariant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["variant_id", "name", "material", "status", "states_covered", "evidence_refs"],
+      "properties": {
+        "variant_id": {"$ref": "#/$defs/id"},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "material": {"type": "boolean"},
+        "status": {
+          "enum": ["observed", "confirmed", "planned", "partial", "not_tested", "externally_blocked"]
+        },
+        "states_covered": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "entry",
+              "progression",
+              "success",
+              "failure",
+              "empty",
+              "reentry",
+              "post_conversion"
+            ]
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "notes": {"type": "string"}
+      }
+    },
+    "journey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "journey_id",
+        "name",
+        "outcome",
+        "material",
+        "status",
+        "value_domains",
+        "entry_points",
+        "steps",
+        "variants",
+        "evidence_refs"
+      ],
+      "properties": {
+        "journey_id": {"$ref": "#/$defs/id"},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "outcome": {"$ref": "#/$defs/nonEmptyString"},
+        "material": {"type": "boolean"},
+        "status": {
+          "enum": ["observed", "confirmed", "planned", "partial", "not_tested", "externally_blocked"]
+        },
+        "value_domains": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "revenue",
+              "qualified_demand",
+              "subscription",
+              "retention",
+              "engagement",
+              "service",
+              "support",
+              "mission",
+              "operational",
+              "risk",
+              "informational",
+              "other"
+            ]
+          }
+        },
+        "entry_points": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/journeyStep"}
+        },
+        "variants": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/journeyVariant"}
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "notes": {"type": "string"}
+      }
+    },
+    "objectiveConsideration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "consideration_id",
+        "lens",
+        "topic",
+        "resolution",
+        "objective_ids",
+        "reason",
+        "evidence_refs"
+      ],
+      "properties": {
+        "consideration_id": {"$ref": "#/$defs/id"},
+        "lens": {
+          "enum": ["value_stream", "lifecycle", "stakeholder", "risk_guardrail", "client_required", "other"]
+        },
+        "topic": {"$ref": "#/$defs/nonEmptyString"},
+        "resolution": {
+          "enum": ["objective_proposed", "covered_by_existing", "none_with_reason", "out_of_scope", "unresolved"]
+        },
+        "objective_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "reason": {"$ref": "#/$defs/nonEmptyString"},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objective_id",
+        "statement",
+        "value_stream",
+        "origin",
+        "status",
+        "priority",
+        "journey_ids",
+        "rationale",
+        "evidence_refs",
+        "confidence"
+      ],
+      "properties": {
+        "objective_id": {"$ref": "#/$defs/id"},
+        "statement": {"$ref": "#/$defs/nonEmptyString"},
+        "value_stream": {"$ref": "#/$defs/nonEmptyString"},
+        "origin": {"enum": ["client_required", "inferred"]},
+        "status": {"enum": ["confirmed", "hypothesis", "unsupported", "out_of_measurement_scope"]},
+        "priority": {"enum": ["primary", "secondary", "supporting"]},
+        "journey_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "rationale": {"$ref": "#/$defs/nonEmptyString"},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "confidence": {"enum": ["high", "medium", "low"]},
+        "owner_role": {"type": "string"},
+        "notes": {"type": "string"}
+      }
+    },
+    "kpiConsideration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "consideration_id",
+        "scope_type",
+        "scope_id",
+        "role",
+        "resolution",
+        "kpi_ids",
+        "reason",
+        "evidence_refs"
+      ],
+      "properties": {
+        "consideration_id": {"$ref": "#/$defs/id"},
+        "scope_type": {"enum": ["objective", "journey"]},
+        "scope_id": {"$ref": "#/$defs/id"},
+        "role": {
+          "enum": ["outcome", "driver", "guardrail", "completion", "step_conversion", "friction", "diagnostic"]
+        },
+        "resolution": {
+          "enum": ["kpi_proposed", "covered_by_existing", "none_with_reason", "not_applicable", "unresolved"]
+        },
+        "kpi_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "reason": {"$ref": "#/$defs/nonEmptyString"},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        }
+      }
+    },
+    "formulaComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component_id", "name", "role", "definition", "requirement_ids"],
+      "properties": {
+        "component_id": {"$ref": "#/$defs/id"},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "role": {"enum": ["numerator", "denominator", "input", "output", "filter"]},
+        "definition": {"$ref": "#/$defs/nonEmptyString"},
+        "requirement_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        }
+      }
+    },
+    "formula": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expression",
+        "counting_unit",
+        "grain",
+        "population",
+        "reporting_window",
+        "inclusions",
+        "exclusions",
+        "components"
+      ],
+      "properties": {
+        "expression": {"$ref": "#/$defs/nonEmptyString"},
+        "counting_unit": {"$ref": "#/$defs/nonEmptyString"},
+        "grain": {"$ref": "#/$defs/nonEmptyString"},
+        "population": {"$ref": "#/$defs/nonEmptyString"},
+        "reporting_window": {"$ref": "#/$defs/nonEmptyString"},
+        "inclusions": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "exclusions": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/formulaComponent"}
+        },
+        "notes": {"type": "string"}
+      }
+    },
+    "segmentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dimension_ids", "rationale"],
+      "properties": {
+        "dimension_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "rationale": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "kpi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kpi_id",
+        "name",
+        "primary_objective_id",
+        "objective_ids",
+        "journey_ids",
+        "tier",
+        "role",
+        "formula",
+        "segmentation",
+        "owner_role",
+        "decision_use",
+        "directionality",
+        "recommended_core",
+        "origin",
+        "evidence_status",
+        "evidence_refs"
+      ],
+      "properties": {
+        "kpi_id": {"$ref": "#/$defs/id"},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "primary_objective_id": {"$ref": "#/$defs/id"},
+        "objective_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "journey_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "tier": {"enum": ["north_star", "primary", "supporting", "guardrail", "diagnostic"]},
+        "role": {"enum": ["outcome", "driver", "guardrail", "diagnostic"]},
+        "formula": {"$ref": "#/$defs/formula"},
+        "segmentation": {"$ref": "#/$defs/segmentation"},
+        "owner_role": {"$ref": "#/$defs/nonEmptyString"},
+        "decision_use": {"$ref": "#/$defs/nonEmptyString"},
+        "directionality": {"enum": ["increase", "decrease", "maintain", "contextual"]},
+        "recommended_core": {"type": "boolean"},
+        "origin": {"enum": ["client_required", "inferred"]},
+        "evidence_status": {"enum": ["verified", "partially_verified", "unverified"]},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "assumption_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "notes": {"type": "string"}
+      }
+    },
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dimension_id",
+        "name",
+        "definition",
+        "kpi_ids",
+        "source_hint",
+        "collection_mode_hint",
+        "segmentation_purpose",
+        "sensitivity_review",
+        "evidence_refs"
+      ],
+      "properties": {
+        "dimension_id": {"$ref": "#/$defs/id"},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "definition": {"$ref": "#/$defs/nonEmptyString"},
+        "kpi_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "source_hint": {"$ref": "#/$defs/nonEmptyString"},
+        "collection_mode_hint": {
+          "enum": ["manual_web_event", "native_analytics", "backend_event", "business_system_fact", "join", "derived", "unknown"]
+        },
+        "segmentation_purpose": {"$ref": "#/$defs/nonEmptyString"},
+        "sensitivity_review": {"enum": ["no_known_personal_data", "review_required", "prohibited"]},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        }
+      }
+    },
+    "downstreamMappingHint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authoritative", "candidate_event", "candidate_fields", "rationale"],
+      "properties": {
+        "authoritative": {"const": false},
+        "candidate_event": {"$ref": "#/$defs/nonEmptyString"},
+        "candidate_fields": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "rationale": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "measurementRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_id",
+        "name",
+        "semantic_fact",
+        "role",
+        "kpi_ids",
+        "journey_ids",
+        "timing_or_state",
+        "entity",
+        "grain",
+        "dimension_ids",
+        "source_system",
+        "collection_mode",
+        "priority",
+        "verification_status",
+        "evidence_refs"
+      ],
+      "properties": {
+        "requirement_id": {"$ref": "#/$defs/id"},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "semantic_fact": {"$ref": "#/$defs/nonEmptyString"},
+        "role": {"enum": ["outcome", "progression", "diagnostic", "metric_support", "context"]},
+        "kpi_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "journey_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "timing_or_state": {"$ref": "#/$defs/nonEmptyString"},
+        "entity": {"$ref": "#/$defs/nonEmptyString"},
+        "grain": {"$ref": "#/$defs/nonEmptyString"},
+        "dimension_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "source_system": {"$ref": "#/$defs/nonEmptyString"},
+        "collection_mode": {
+          "enum": ["manual_web_event", "native_analytics", "backend_event", "business_system_fact", "join", "derived", "unknown"]
+        },
+        "priority": {"enum": ["core", "supporting", "diagnostic"]},
+        "verification_status": {"enum": ["verified", "confirmed", "planned", "unverified"]},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "downstream_mapping_hint": {"$ref": "#/$defs/downstreamMappingHint"},
+        "notes": {"type": "string"}
+      }
+    },
+    "alignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirement_id", "status", "current_measurement_refs", "gaps", "action"],
+      "properties": {
+        "requirement_id": {"$ref": "#/$defs/id"},
+        "status": {"enum": ["covered", "partial", "missing", "not_assessable"]},
+        "current_measurement_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "gaps": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "action": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "unlinkedMeasurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measurement_ref", "status", "justification", "evidence_refs"],
+      "properties": {
+        "measurement_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "status": {"enum": ["justified", "needs_justification", "out_of_scope"]},
+        "justification": {"$ref": "#/$defs/nonEmptyString"},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        }
+      }
+    },
+    "assumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assumption_id", "statement", "rationale", "affected_ids", "evidence_refs", "status"],
+      "properties": {
+        "assumption_id": {"$ref": "#/$defs/id"},
+        "statement": {"$ref": "#/$defs/nonEmptyString"},
+        "rationale": {"$ref": "#/$defs/nonEmptyString"},
+        "affected_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "status": {"enum": ["open", "validated", "rejected"]}
+      }
+    },
+    "exception": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exception_id", "stage", "description", "affected_ids", "impact", "disposition", "evidence_refs"],
+      "properties": {
+        "exception_id": {"$ref": "#/$defs/id"},
+        "stage": {"enum": ["journey", "objective", "kpi", "measurement_requirement", "alignment"]},
+        "description": {"$ref": "#/$defs/nonEmptyString"},
+        "affected_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "impact": {"$ref": "#/$defs/nonEmptyString"},
+        "disposition": {"enum": ["bounded", "out_of_scope", "awaiting_evidence"]},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "tested_at", "rationale", "exception_ids"],
+      "properties": {
+        "status": {"enum": ["pass", "pass_with_exceptions", "fail"]},
+        "tested_at": {"type": "string", "format": "date-time"},
+        "rationale": {"$ref": "#/$defs/nonEmptyString"},
+        "exception_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        }
+      }
+    },
+    "qualityGates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "journey_completeness",
+        "journey_appropriateness",
+        "objective_completeness",
+        "objective_appropriateness",
+        "kpi_completeness",
+        "kpi_appropriateness",
+        "requirement_traceability",
+        "overall"
+      ],
+      "properties": {
+        "journey_completeness": {"$ref": "#/$defs/gate"},
+        "journey_appropriateness": {"$ref": "#/$defs/gate"},
+        "objective_completeness": {"$ref": "#/$defs/gate"},
+        "objective_appropriateness": {"$ref": "#/$defs/gate"},
+        "kpi_completeness": {"$ref": "#/$defs/gate"},
+        "kpi_appropriateness": {"$ref": "#/$defs/gate"},
+        "requirement_traceability": {"$ref": "#/$defs/gate"},
+        "overall": {"$ref": "#/$defs/gate"}
+      }
+    }
+  }
+}

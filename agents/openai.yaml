@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Measurement Framework"
+  short_description: "Build complete, justified KPI frameworks"
+  default_prompt: "Use $design-measurement-framework to derive a coverage-closed journey, objective, KPI, and measurement-requirement framework for this website."
