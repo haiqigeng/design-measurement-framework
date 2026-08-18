@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "document": {
     "title": "Example quote measurement framework",
     "version": "1.0",
@@ -221,7 +221,9 @@
       "tier": "primary",
       "role": "outcome",
       "formula": {
-        "expression": "accepted quote requests / started quote journeys",
+        "expression": "accepted_quote_requests / started_quote_journeys",
+        "calculation_type": "rate",
+        "result_unit": "proportion",
         "counting_unit": "quote journey",
         "grain": "one result per quote journey identifier",
         "population": "eligible public quote journeys started during the reporting window",
@@ -232,15 +234,21 @@
           {
             "component_id": "component_completed_quotes",
             "name": "Accepted quote requests",
+            "symbol": "accepted_quote_requests",
             "role": "numerator",
             "definition": "Distinct quote journeys accepted by the quote service",
+            "counting_unit": "quote journey",
+            "grain": "one record per quote journey identifier",
             "requirement_ids": ["requirement_quote_accepted"]
           },
           {
             "component_id": "component_started_quotes",
             "name": "Started quote journeys",
+            "symbol": "started_quote_journeys",
             "role": "denominator",
             "definition": "Distinct eligible quote journeys with first meaningful form progression",
+            "counting_unit": "quote journey",
+            "grain": "one record per quote journey identifier",
             "requirement_ids": ["requirement_quote_started"]
           }
         ]
@@ -266,7 +274,9 @@
       "tier": "primary",
       "role": "driver",
       "formula": {
-        "expression": "qualified quote requests / accepted quote requests",
+        "expression": "qualified_quote_requests / accepted_quote_requests",
+        "calculation_type": "rate",
+        "result_unit": "proportion",
         "counting_unit": "quote request",
         "grain": "one result per accepted quote request identifier",
         "population": "accepted quote requests reaching a qualification decision",
@@ -277,15 +287,21 @@
           {
             "component_id": "component_qualified_quotes",
             "name": "Qualified quote requests",
+            "symbol": "qualified_quote_requests",
             "role": "numerator",
             "definition": "Accepted requests classified as qualified by the CRM rule",
+            "counting_unit": "quote request",
+            "grain": "one record per accepted quote request identifier",
             "requirement_ids": ["requirement_quote_qualified"]
           },
           {
             "component_id": "component_accepted_quotes",
             "name": "Accepted quote requests",
+            "symbol": "accepted_quote_requests",
             "role": "denominator",
             "definition": "Distinct quote requests accepted by the quote service",
+            "counting_unit": "quote request",
+            "grain": "one record per accepted quote request identifier",
             "requirement_ids": ["requirement_quote_accepted"]
           }
         ]
@@ -311,7 +327,9 @@
       "tier": "guardrail",
       "role": "guardrail",
       "formula": {
-        "expression": "quote journeys with a validation error / started quote journeys",
+        "expression": "quote_journeys_with_validation_error / started_quote_journeys",
+        "calculation_type": "rate",
+        "result_unit": "proportion",
         "counting_unit": "quote journey",
         "grain": "one result per quote journey identifier",
         "population": "eligible public quote journeys started during the reporting window",
@@ -322,15 +340,21 @@
           {
             "component_id": "component_error_journeys",
             "name": "Quote journeys with validation error",
+            "symbol": "quote_journeys_with_validation_error",
             "role": "numerator",
             "definition": "Distinct started quote journeys with at least one blocking validation failure",
+            "counting_unit": "quote journey",
+            "grain": "one record per quote journey identifier",
             "requirement_ids": ["requirement_quote_validation_error"]
           },
           {
             "component_id": "component_error_population",
             "name": "Started quote journeys",
+            "symbol": "started_quote_journeys",
             "role": "denominator",
             "definition": "Distinct eligible quote journeys with first meaningful form progression",
+            "counting_unit": "quote journey",
+            "grain": "one record per quote journey identifier",
             "requirement_ids": ["requirement_quote_started"]
           }
         ]

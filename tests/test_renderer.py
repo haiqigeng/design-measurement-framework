@@ -3,7 +3,13 @@ from __future__ import annotations
 import sys
 import unittest
 
-from helpers import ROOT, add_exception, add_second_north_star, load_framework
+from helpers import (
+    ROOT,
+    add_duplicate_kpi,
+    add_exception,
+    add_second_north_star,
+    load_framework,
+)
 
 sys.path.insert(0, str(ROOT / "scripts"))
 
@@ -108,6 +114,20 @@ class MeasurementFrameworkRendererTests(unittest.TestCase):
         self.assertIn("Timing or state", rendered)
         self.assertIn("Entity and grain", rendered)
         self.assertIn("Dimension(s)", rendered)
+
+    def test_structured_formula_contract_is_human_visible(self) -> None:
+        rendered = render_framework(self.framework)
+        self.assertIn("- Calculation contract: rate; result unit: proportion", rendered)
+        self.assertIn("symbol: accepted_quote_requests", rendered)
+        self.assertIn("unit: quote journey", rendered)
+        self.assertIn("grain: one record per quote journey identifier", rendered)
+
+    def test_duplicate_kpi_advisory_is_human_visible(self) -> None:
+        duplicate = add_duplicate_kpi(self.framework)
+        rendered = render_framework(self.framework)
+        self.assertIn("## Review advisories", rendered)
+        self.assertIn("Possible duplicate KPIs", rendered)
+        self.assertIn(duplicate["kpi_id"], rendered)
 
     def test_multiple_north_star_rationales_are_human_visible(self) -> None:
         add_second_north_star(self.framework)

@@ -22,7 +22,7 @@
     "quality_gates"
   ],
   "properties": {
-    "schema_version": {"enum": ["1.0.0", "1.1.0"]},
+    "schema_version": {"enum": ["1.0.0", "1.1.0", "1.2.0"]},
     "document": {"$ref": "#/$defs/document"},
     "sources": {
       "type": "array",
@@ -86,6 +86,34 @@
     },
     "quality_gates": {"$ref": "#/$defs/qualityGates"}
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"schema_version": {"const": "1.2.0"}},
+        "required": ["schema_version"]
+      },
+      "then": {
+        "properties": {
+          "kpis": {
+            "items": {
+              "properties": {
+                "formula": {
+                  "required": ["calculation_type", "result_unit"],
+                  "properties": {
+                    "components": {
+                      "items": {
+                        "required": ["symbol", "counting_unit", "grain"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "id": {
       "type": "string",
@@ -538,8 +566,11 @@
       "properties": {
         "component_id": {"$ref": "#/$defs/id"},
         "name": {"$ref": "#/$defs/nonEmptyString"},
+        "symbol": {"$ref": "#/$defs/id"},
         "role": {"enum": ["numerator", "denominator", "input", "output", "filter"]},
         "definition": {"$ref": "#/$defs/nonEmptyString"},
+        "counting_unit": {"$ref": "#/$defs/nonEmptyString"},
+        "grain": {"$ref": "#/$defs/nonEmptyString"},
         "requirement_ids": {
           "type": "array",
           "minItems": 1,
@@ -563,6 +594,23 @@
       ],
       "properties": {
         "expression": {"$ref": "#/$defs/nonEmptyString"},
+        "calculation_type": {
+          "enum": [
+            "count",
+            "sum",
+            "ratio",
+            "rate",
+            "average",
+            "weighted_average",
+            "percentile",
+            "cohort",
+            "retention",
+            "composite",
+            "index",
+            "other"
+          ]
+        },
+        "result_unit": {"$ref": "#/$defs/nonEmptyString"},
         "counting_unit": {"$ref": "#/$defs/nonEmptyString"},
         "grain": {"$ref": "#/$defs/nonEmptyString"},
         "population": {"$ref": "#/$defs/nonEmptyString"},

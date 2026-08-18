@@ -13,6 +13,46 @@ def load_framework() -> dict[str, Any]:
     return json.loads(FIXTURE.read_text(encoding="utf-8"))
 
 
+def downgrade_formula_contract(
+    framework: dict[str, Any], *, schema_version: str
+) -> None:
+    framework["schema_version"] = schema_version
+    for kpi in framework["kpis"]:
+        formula = kpi["formula"]
+        formula.pop("calculation_type", None)
+        formula.pop("result_unit", None)
+        for component in formula["components"]:
+            component.pop("symbol", None)
+            component.pop("counting_unit", None)
+            component.pop("grain", None)
+
+
+def add_duplicate_kpi(framework: dict[str, Any]) -> dict[str, Any]:
+    original = framework["kpis"][0]
+    duplicate = copy.deepcopy(original)
+    duplicate["kpi_id"] = "kpi_quote_completion_rate_duplicate"
+    duplicate["name"] = "Quote completion percentage"
+    for component in duplicate["formula"]["components"]:
+        component["component_id"] += "_duplicate"
+    framework["kpis"].append(duplicate)
+
+    linked_requirement_ids = {
+        requirement_id
+        for component in duplicate["formula"]["components"]
+        for requirement_id in component["requirement_ids"]
+    }
+    for requirement in framework["measurement_requirements"]:
+        if requirement["requirement_id"] in linked_requirement_ids:
+            requirement["kpi_ids"].append(duplicate["kpi_id"])
+    for dimension in framework["dimensions"]:
+        if dimension["dimension_id"] in duplicate["segmentation"]["dimension_ids"]:
+            dimension["kpi_ids"].append(duplicate["kpi_id"])
+    for consideration in framework["kpi_considerations"]:
+        if original["kpi_id"] in consideration["kpi_ids"]:
+            consideration["kpi_ids"].append(duplicate["kpi_id"])
+    return duplicate
+
+
 def add_alignment_source(
     framework: dict[str, Any],
     *,

@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Schema `1.2.0` structured formula fields for calculation type, result unit,
+  component symbols, per-component counting units, and component grain.
+- Safe formula-expression validation across counts, sums, rates, averages,
+  weighted averages, percentiles, cohorts, retention, and composite or index
+  calculations.
+- Material-journey entry and success closure with bounded journey exceptions.
+- Conditional recommended-core guardrail balance when an objective's guardrail
+  consideration resolves to a real KPI.
+- Non-blocking duplicate-KPI advisories based on calculation, population,
+  scope, dimensions, and semantic requirements.
+
+### Compatibility
+
+- Schema `1.0.0` and `1.1.0` artifacts retain their prior acceptance behavior.
+- No analytics-platform event, parameter, trigger, dataLayer, or tracking-plan
+  contract was added.
+
 ## [1.1.2] - 2026-08-18
 
 ### Changed

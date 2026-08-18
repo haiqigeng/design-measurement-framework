@@ -24,6 +24,8 @@ Require all of the following:
 - map every scanned navigation, CTA, form, template, entry, and endpoint family
   to a journey, merge, exclusion, or exception;
 - include every material expected journey or record why it is absent;
+- give every material journey a declared entry point plus explicit entry and
+  success steps, allowing non-UI outcome evidence or a bounded exception;
 - represent material variants separately when their paths or measurement needs differ;
 - record decisions for success, failure, empty, re-entry, and post-conversion states;
 - link every partial, not-tested, or externally blocked material state to an exception;
@@ -103,6 +105,8 @@ Require every accepted KPI to:
 - use a dimensionally valid formula, grain, population, and time basis;
 - avoid vanity, duplicate, and redundant definitions;
 - use guardrails where optimizing the KPI can plausibly degrade quality or value;
+- balance core outcome or driver KPIs with their explicitly proposed guardrail
+  KPIs, or cite a KPI-appropriateness exception;
 - keep tier and role coherent, including guardrail and diagnostic assignments;
 - distinguish outcome, driver, guardrail, and diagnostic roles honestly;
 - use a North Star only when one durable metric can represent its declared

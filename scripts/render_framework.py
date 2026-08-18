@@ -11,6 +11,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+from formula_contract import review_advisories
 from validate_framework import DEFAULT_SCHEMA, GATE_ORDER, validate_framework
 
 TIER_ORDER = {
@@ -48,6 +49,19 @@ def _join_rules(values: Any) -> str:
     if not isinstance(values, list) or not values:
         return "None specified"
     return "; ".join(str(value) for value in values)
+
+
+def _format_formula_component(component: dict[str, Any]) -> str:
+    attributes = [str(component["role"])]
+    for key, label in (
+        ("symbol", "symbol"),
+        ("counting_unit", "unit"),
+        ("grain", "grain"),
+    ):
+        value = component.get(key)
+        if value:
+            attributes.append(f"{label}: {value}")
+    return f"{component['name']} [{'; '.join(attributes)}] - {component['definition']}"
 
 
 def _format_applicability(record: dict[str, Any]) -> str:
@@ -161,6 +175,7 @@ def render_framework(data: dict[str, Any]) -> str:
     ]
     gates = data["quality_gates"]
     overall_gate = gates["overall"]
+    advisories = review_advisories(data)
 
     lines: list[str] = [
         f"# {document['title']}",
@@ -444,6 +459,10 @@ def render_framework(data: dict[str, Any]) -> str:
         )
     )
 
+    if advisories:
+        lines.extend(["", "## Review advisories", ""])
+        lines.extend(f"- {advisory}" for advisory in advisories)
+
     lines.extend(["", "## KPI system", ""])
     lines.extend(
         _table(
@@ -511,9 +530,19 @@ def render_framework(data: dict[str, Any]) -> str:
                 f"- Owner: {item['owner_role']}",
                 f"- Evidence status and references: {item['evidence_status']}; {_cell(item['evidence_refs'])}",
                 f"- Formula: `{item['formula']['expression']}`",
+                *(
+                    [
+                        "- Calculation contract: "
+                        f"{item['formula']['calculation_type']}; result unit: "
+                        f"{item['formula']['result_unit']}"
+                    ]
+                    if item["formula"].get("calculation_type")
+                    and item["formula"].get("result_unit")
+                    else []
+                ),
                 "- Formula components: "
                 + "; ".join(
-                    f"{component['name']} [{component['role']}] - {component['definition']}"
+                    _format_formula_component(component)
                     for component in item["formula"]["components"]
                 ),
                 f"- Counting unit and grain: {item['formula']['counting_unit']}; {item['formula']['grain']}",
@@ -665,8 +694,7 @@ def render_framework(data: dict[str, Any]) -> str:
         "unresolved",
     )
     objective_lens_counts = Counter(
-        (item["lens"], item["resolution"])
-        for item in data["objective_considerations"]
+        (item["lens"], item["resolution"]) for item in data["objective_considerations"]
     )
     objective_lens_totals = Counter(
         item["lens"] for item in data["objective_considerations"]

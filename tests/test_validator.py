@@ -7,14 +7,17 @@ import unittest
 from helpers import (
     ROOT,
     add_alignment_source,
+    add_duplicate_kpi,
     add_exception,
     add_second_north_star,
     add_secondary_objective_without_core,
+    downgrade_formula_contract,
     load_framework,
 )
 
 sys.path.insert(0, str(ROOT / "scripts"))
 
+from formula_contract import review_advisories  # noqa: E402
 from validate_framework import validate_framework  # noqa: E402
 
 
@@ -29,8 +32,46 @@ class MeasurementFrameworkValidationTests(unittest.TestCase):
         self.assertEqual(validate_framework(self.framework, delivery=True), [])
 
     def test_v1_schema_version_remains_compatible(self) -> None:
-        self.framework["schema_version"] = "1.0.0"
+        downgrade_formula_contract(self.framework, schema_version="1.0.0")
         self.assertEqual(validate_framework(self.framework, delivery=True), [])
+
+    def test_v1_1_schema_version_remains_compatible(self) -> None:
+        downgrade_formula_contract(self.framework, schema_version="1.1.0")
+        self.assertEqual(validate_framework(self.framework, delivery=True), [])
+
+    def test_material_journey_requires_entry_and_success_closure(self) -> None:
+        journey = self.framework["journeys"][0]
+        journey["steps"] = [
+            step for step in journey["steps"] if step["state"] != "success"
+        ]
+        errors = validate_framework(self.framework)
+        self.assert_has_error(errors, "a success-state step")
+
+    def test_material_journey_requires_a_declared_entry_point(self) -> None:
+        self.framework["journeys"][0]["entry_points"] = []
+        errors = validate_framework(self.framework)
+        self.assert_has_error(errors, "a declared entry point")
+
+    def test_material_journey_closure_can_be_bounded_by_exception(self) -> None:
+        journey = self.framework["journeys"][0]
+        journey["steps"] = [
+            step for step in journey["steps"] if step["state"] != "success"
+        ]
+        add_exception(
+            self.framework,
+            exception_id="exception_backend_outcome_evidence",
+            stage="journey",
+            affected_ids=[journey["journey_id"]],
+        )
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_legacy_journey_shape_keeps_prior_acceptance_behavior(self) -> None:
+        downgrade_formula_contract(self.framework, schema_version="1.1.0")
+        journey = self.framework["journeys"][0]
+        journey["steps"] = [
+            step for step in journey["steps"] if step["state"] != "success"
+        ]
+        self.assertEqual(validate_framework(self.framework), [])
 
     def test_unresolved_candidate_requires_exception(self) -> None:
         candidate = self.framework["discovery_candidates"][0]
@@ -215,9 +256,141 @@ class MeasurementFrameworkValidationTests(unittest.TestCase):
         errors = validate_framework(self.framework)
         self.assert_has_error(errors, "framework has no recommended-core KPI")
 
+    def test_relevant_guardrail_must_balance_core_growth_kpis(self) -> None:
+        guardrail = next(
+            item for item in self.framework["kpis"] if item["role"] == "guardrail"
+        )
+        guardrail["recommended_core"] = False
+        errors = validate_framework(self.framework)
+        self.assert_has_error(
+            errors, "no cited guardrail KPI is in the recommended core"
+        )
+
+    def test_core_guardrail_balance_can_use_appropriateness_exception(self) -> None:
+        guardrail = next(
+            item for item in self.framework["kpis"] if item["role"] == "guardrail"
+        )
+        guardrail["recommended_core"] = False
+        add_exception(
+            self.framework,
+            exception_id="exception_core_guardrail_scope",
+            stage="kpi",
+            affected_ids=["objective_qualified_demand"],
+            gate_ids=["kpi_appropriateness"],
+        )
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_core_guardrail_is_not_forced_when_consideration_rejects_it(self) -> None:
+        guardrail = next(
+            item for item in self.framework["kpis"] if item["role"] == "guardrail"
+        )
+        guardrail["recommended_core"] = False
+        consideration = next(
+            item
+            for item in self.framework["kpi_considerations"]
+            if item["consideration_id"] == "kpicon_objective_guardrail"
+        )
+        consideration["resolution"] = "none_with_reason"
+        consideration["kpi_ids"] = []
+        consideration["reason"] = (
+            "No distinct objective-level guardrail is justified by the evidence."
+        )
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_legacy_core_selection_keeps_prior_acceptance_behavior(self) -> None:
+        downgrade_formula_contract(self.framework, schema_version="1.1.0")
+        guardrail = next(
+            item for item in self.framework["kpis"] if item["role"] == "guardrail"
+        )
+        guardrail["recommended_core"] = False
+        self.assertEqual(validate_framework(self.framework), [])
+
     def test_secondary_objective_does_not_require_its_own_core_kpi(self) -> None:
         add_secondary_objective_without_core(self.framework)
         self.assertEqual(validate_framework(self.framework), [])
+
+    def test_structured_formula_supports_major_calculation_families(self) -> None:
+        cases = {
+            "count": "distinct_count(accepted_quote_requests)",
+            "sum": "sum(accepted_quote_requests)",
+            "ratio": "accepted_quote_requests / started_quote_journeys",
+            "rate": "rate(accepted_quote_requests, started_quote_journeys)",
+            "average": "average(accepted_quote_requests)",
+            "weighted_average": (
+                "weighted_average(accepted_quote_requests, started_quote_journeys)"
+            ),
+            "percentile": "percentile(accepted_quote_requests, 0.9)",
+            "cohort": "cohort_rate(accepted_quote_requests, started_quote_journeys)",
+            "retention": (
+                "retention_rate(accepted_quote_requests, started_quote_journeys)"
+            ),
+            "composite": (
+                "0.5 * accepted_quote_requests + 0.5 * started_quote_journeys"
+            ),
+            "index": "index_value(accepted_quote_requests, started_quote_journeys)",
+            "other": "accepted_quote_requests + started_quote_journeys",
+        }
+        one_input_types = {"count", "sum", "average", "percentile"}
+        general_input_types = {
+            "weighted_average",
+            "composite",
+            "index",
+            "other",
+        }
+        for calculation_type, expression in cases.items():
+            with self.subTest(calculation_type=calculation_type):
+                framework = copy.deepcopy(self.framework)
+                formula = framework["kpis"][0]["formula"]
+                formula["calculation_type"] = calculation_type
+                formula["expression"] = expression
+                if calculation_type in one_input_types:
+                    formula["components"][0]["role"] = "input"
+                    formula["components"][1]["role"] = "filter"
+                elif calculation_type in general_input_types:
+                    for component in formula["components"]:
+                        component["role"] = "input"
+                self.assertEqual(validate_framework(framework), [])
+
+    def test_structured_formula_rejects_undeclared_or_unused_components(self) -> None:
+        formula = self.framework["kpis"][0]["formula"]
+        formula["expression"] = "unrelated_value / another_value"
+        errors = validate_framework(self.framework)
+        self.assert_has_error(errors, "undeclared component symbol 'unrelated_value'")
+        self.assert_has_error(
+            errors, "component symbol 'accepted_quote_requests' is not used"
+        )
+
+    def test_structured_formula_requires_component_units_and_grain(self) -> None:
+        component = self.framework["kpis"][0]["formula"]["components"][0]
+        component.pop("counting_unit")
+        component.pop("grain")
+        errors = validate_framework(self.framework)
+        self.assert_has_error(errors, ".counting_unit: required for schema 1.2.0")
+        self.assert_has_error(errors, ".grain: required for schema 1.2.0")
+
+    def test_structured_formula_type_must_match_specialized_function(self) -> None:
+        formula = self.framework["kpis"][0]["formula"]
+        formula["calculation_type"] = "percentile"
+        errors = validate_framework(self.framework)
+        self.assert_has_error(errors, "'percentile' requires percentile(...)")
+
+    def test_structured_formula_function_arity_is_checked(self) -> None:
+        formula = self.framework["kpis"][0]["formula"]
+        formula["expression"] = "rate(accepted_quote_requests)"
+        errors = validate_framework(self.framework)
+        self.assert_has_error(errors, "function 'rate' requires 2 argument(s)")
+
+    def test_duplicate_kpi_is_an_advisory_not_a_validation_error(self) -> None:
+        duplicate = add_duplicate_kpi(self.framework)
+        self.assertEqual(validate_framework(self.framework), [])
+        advisories = review_advisories(self.framework)
+        self.assertEqual(len(advisories), 1)
+        self.assertIn(duplicate["kpi_id"], advisories[0])
+
+    def test_distinct_population_is_not_flagged_as_duplicate(self) -> None:
+        duplicate = add_duplicate_kpi(self.framework)
+        duplicate["formula"]["population"] = "Returning quote journeys only"
+        self.assertEqual(review_advisories(self.framework), [])
 
     def test_appropriateness_exception_can_target_appropriateness_gate(self) -> None:
         add_exception(

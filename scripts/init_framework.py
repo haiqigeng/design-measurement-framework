@@ -48,7 +48,7 @@ def build_draft(
         for name in GATE_NAMES
     }
     return {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "document": {
             "title": title,
             "version": "0.1-draft",

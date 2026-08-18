@@ -80,6 +80,24 @@ Record for every KPI:
 Require two competent analysts using the same sources to calculate the same
 number.
 
+For schema `1.2.0`, make the existing `formula.expression` both readable and
+machine-checkable:
+
+- write it with stable lowercase `snake_case` component symbols;
+- declare `calculation_type` and `result_unit`;
+- give every component its symbol, counting unit, grain, role, definition, and
+  measurement-requirement links;
+- use arithmetic operators or the validator's bounded functions for counts,
+  sums, rates, averages, weighted averages, percentiles, cohorts, retention,
+  and composite or index calculations; and
+- reference every numerator, denominator, and input component in the expression.
+
+Filters and declared outputs may remain outside the arithmetic expression when
+their role is eligibility or result description. The expression is a semantic
+calculation contract, not SQL, analytics-platform syntax, or executable client
+code. If the calculation cannot be represented without ambiguity, retain an
+explicit exception instead of writing unrelated prose in the expression.
+
 ## Validate Grain And Identities
 
 Check units on both sides of every arithmetic identity. Do not accept
@@ -120,6 +138,15 @@ Produce the complete justified set, then highlight the recommended core. Keep
 lower-tier candidates only when they retain a distinct decision or diagnostic
 purpose.
 
+Treat duplicate-definition detection as a review advisory. Similar calculations
+may remain distinct when their population, applicability, objective, decision,
+or required interpretation differs. Never delete or merge a KPI from a
+fingerprint alone.
+
 Select the recommended core at framework level. Every active objective still
 needs an appropriate outcome KPI or named exception, but it does not need its
-own mechanically designated core KPI.
+own mechanically designated core KPI. When a core outcome or driver has a
+guardrail consideration resolved to a real guardrail KPI, include a cited
+guardrail for that objective in the core or record a KPI-appropriateness
+exception. Do not manufacture a guardrail when the consideration is explicitly
+and credibly `none_with_reason` or `not_applicable`.

@@ -13,6 +13,12 @@ from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from formula_contract import (
+    review_advisories,
+    uses_v1_2_contract,
+    validate_structured_formula,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SCHEMA = ROOT / "schemas" / "measurement-framework.schema.json"
 
@@ -191,6 +197,20 @@ def _exception_gate_names(exception: dict[str, Any]) -> set[str]:
     if isinstance(explicit, list) and explicit:
         return {value for value in explicit if isinstance(value, str)}
     return set(DEFAULT_STAGE_GATES.get(str(exception.get("stage")), set()))
+
+
+def _has_gate_exception(
+    entity_ids: set[str],
+    exceptions: dict[str, dict[str, Any]],
+    stage: str,
+    gate_name: str,
+) -> bool:
+    return any(
+        exception.get("stage") == stage
+        and bool(entity_ids & set(exception.get("affected_ids", [])))
+        and gate_name in _exception_gate_names(exception)
+        for exception in exceptions.values()
+    )
 
 
 def _validate_applicability(
@@ -476,6 +496,27 @@ def _validate_journey_layer(
                     f"{journey.get('status')!r} requires a linked exception"
                 )
         steps = journey.get("steps", [])
+        if journey.get("material") is True and uses_v1_2_contract(data):
+            represented_states = {
+                step.get("state")
+                for step in steps
+                if isinstance(steps, list) and isinstance(step, dict)
+            }
+            closure_gaps: list[str] = []
+            if not journey.get("entry_points"):
+                closure_gaps.append("a declared entry point")
+            if "entry" not in represented_states:
+                closure_gaps.append("an entry-state step")
+            if "success" not in represented_states:
+                closure_gaps.append("a success-state step")
+            if closure_gaps and not _has_exception(
+                journey_id, index.exceptions, "journey"
+            ):
+                errors.append(
+                    f"$.journeys[{journey_index}]: material journey requires "
+                    + ", ".join(closure_gaps)
+                    + " or a linked journey exception"
+                )
         for step_index, step in enumerate(steps if isinstance(steps, list) else []):
             if not isinstance(step, dict):
                 continue
@@ -701,7 +742,9 @@ def _validate_kpi_considerations(
             )
 
 
-def _validate_kpi_records(index: FrameworkIndex, errors: list[str]) -> KpiLinks:
+def _validate_kpi_records(
+    data: dict[str, Any], index: FrameworkIndex, errors: list[str]
+) -> KpiLinks:
     objective_ids = set(index.objectives)
     journey_ids = set(index.journeys)
     dimension_ids = set(index.dimensions)
@@ -784,6 +827,8 @@ def _validate_kpi_records(index: FrameworkIndex, errors: list[str]) -> KpiLinks:
                 dimension_kpis[dimension_id].add(kpi_id)
 
         formula = kpi.get("formula", {})
+        if uses_v1_2_contract(data):
+            errors.extend(validate_structured_formula(kpi, kpi_index))
         components = formula.get("components", []) if isinstance(formula, dict) else []
         for component_index, component in enumerate(
             components if isinstance(components, list) else []
@@ -832,6 +877,7 @@ def _validate_kpi_records(index: FrameworkIndex, errors: list[str]) -> KpiLinks:
 
 
 def _validate_kpi_selection(
+    data: dict[str, Any],
     index: FrameworkIndex,
     active_objective_ids: set[str],
     errors: list[str],
@@ -896,6 +942,73 @@ def _validate_kpi_selection(
         )
     if core_kpis and not any(item.get("role") == "outcome" for item in core_kpis):
         errors.append("$.kpis: recommended core must include at least one outcome KPI")
+
+    if not uses_v1_2_contract(data):
+        return
+
+    objective_guardrail_considerations: dict[str, list[dict[str, Any]]] = {}
+    for consideration in _records(data, "kpi_considerations"):
+        if (
+            consideration.get("scope_type") == "objective"
+            and consideration.get("role") == "guardrail"
+            and consideration.get("resolution")
+            in {"kpi_proposed", "covered_by_existing"}
+        ):
+            objective_guardrail_considerations.setdefault(
+                str(consideration.get("scope_id", "")), []
+            ).append(consideration)
+
+    for objective_id in sorted(active_objective_ids):
+        core_growth_kpis = [
+            item
+            for item in core_kpis
+            if item.get("role") in {"outcome", "driver"}
+            and objective_id in item.get("objective_ids", [])
+        ]
+        relevant_considerations = objective_guardrail_considerations.get(
+            objective_id, []
+        )
+        if not core_growth_kpis or not relevant_considerations:
+            continue
+
+        cited_guardrail_ids = {
+            kpi_id
+            for consideration in relevant_considerations
+            for kpi_id in consideration.get("kpi_ids", [])
+            if isinstance(kpi_id, str)
+        }
+        core_guardrail_ids = {
+            kpi_id
+            for kpi_id in cited_guardrail_ids
+            if kpi_id in index.kpis
+            and index.kpis[kpi_id].get("role") == "guardrail"
+            and index.kpis[kpi_id].get("recommended_core") is True
+            and objective_id in index.kpis[kpi_id].get("objective_ids", [])
+        }
+        if core_guardrail_ids:
+            continue
+
+        exception_targets = {
+            objective_id,
+            *(
+                str(item.get("consideration_id", ""))
+                for item in relevant_considerations
+            ),
+            *(str(item.get("kpi_id", "")) for item in core_growth_kpis),
+            *cited_guardrail_ids,
+        }
+        if _has_gate_exception(
+            exception_targets,
+            index.exceptions,
+            "kpi",
+            "kpi_appropriateness",
+        ):
+            continue
+        errors.append(
+            f"$.objectives[{objective_id!r}]: recommended-core outcome or driver "
+            "KPIs have a proposed guardrail, but no cited guardrail KPI is in the "
+            "recommended core and no KPI-appropriateness exception is linked"
+        )
 
 
 def _validate_requirement_layer(
@@ -1253,8 +1366,8 @@ def validate_framework(
         data, index, active_objective_ids, material_journey_ids, errors
     )
 
-    kpi_links = _validate_kpi_records(index, errors)
-    _validate_kpi_selection(index, active_objective_ids, errors)
+    kpi_links = _validate_kpi_records(data, index, errors)
+    _validate_kpi_selection(data, index, active_objective_ids, errors)
 
     _validate_requirement_layer(data, index, kpi_links, errors)
 
@@ -1290,6 +1403,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv or sys.argv[1:])
+    warnings: list[str] = []
     try:
         with args.framework.open("r", encoding="utf-8") as handle:
             data = json.load(handle)
@@ -1297,11 +1411,14 @@ def main(argv: list[str] | None = None) -> int:
         errors = [f"{args.framework}: {exc}"]
     else:
         errors = validate_framework(data, args.schema, delivery=args.delivery)
+        warnings = review_advisories(data) if not errors else []
 
     if args.json_output:
         print(
             json.dumps(
-                {"valid": not errors, "errors": errors}, indent=2, ensure_ascii=False
+                {"valid": not errors, "errors": errors, "warnings": warnings},
+                indent=2,
+                ensure_ascii=False,
             )
         )
     elif errors:
@@ -1310,6 +1427,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"- {error}")
     else:
         print("VALID: measurement framework is structurally and traceably closed")
+        if warnings:
+            print(f"ADVISORIES: {len(warnings)} non-blocking review item(s)")
+            for warning in warnings:
+                print(f"- {warning}")
     return 1 if errors else 0
 
 

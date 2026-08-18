@@ -10,10 +10,12 @@
 - [Measurement requirements](#measurement-requirements)
 - [Gate and exception consistency](#gate-and-exception-consistency)
 
-Use `schemas/measurement-framework.schema.json` as the canonical v1.1
-contract. It accepts v1.0 artifacts for backward compatibility. New drafts use
-`schema_version: 1.1.0`. Validate with `scripts/validate_framework.py` before
-rendering or delivery.
+Use `schemas/measurement-framework.schema.json` as the canonical v1.2
+contract. It accepts v1.0 and v1.1 artifacts for backward compatibility. New
+drafts use `schema_version: 1.2.0`. Validate with
+`scripts/validate_framework.py` before rendering or delivery. Version-specific
+analytical safeguards apply only to v1.2 artifacts, so validation of an older
+artifact does not silently change its prior acceptance contract.
 
 ## Top-Level Inventories
 
@@ -114,6 +116,20 @@ Require these journey-level roles for every material journey:
 - `completion`;
 - `step_conversion`;
 - `friction`.
+
+## Structured Formula Contract
+
+For schema `1.2.0`, require `calculation_type` and `result_unit` on every KPI
+formula and `symbol`, `counting_unit`, and `grain` on every formula component.
+The existing expression uses only declared component symbols, numeric constants,
+bounded arithmetic, and approved semantic functions. Every numerator,
+denominator, and input component must occur in the expression. Filters and
+outputs may remain declarative when they do not participate in arithmetic.
+
+The validator checks expression syntax, symbol reconciliation, specialized
+rate, percentile, and weighted-average shapes, and component metadata. Human
+review remains responsible for whether the declared units, grain, population,
+window, and identity are substantively correct.
 
 ## Measurement Requirements
 

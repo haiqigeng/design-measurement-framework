@@ -93,6 +93,13 @@ Do not require a state that is genuinely not applicable. Record the
 not-applicable decision and reason. Never use one successful variant to close a
 different funnel shape or implementation.
 
+Every material goal-directed journey needs a declared entry point, an explicit
+entry-state step, and an explicit success-state step. A success step may be
+confirmed by backend, lifecycle, business-system, research, or planned evidence;
+it does not require a visible confirmation page. When evidence cannot establish
+the entry or outcome, retain the gap through a journey exception rather than
+inventing a step or calling the journey closed.
+
 ## Separate Evidence From Resolution
 
 Use factual journey states:
@@ -123,7 +130,9 @@ Close journey coverage only when:
 1. every material discovery candidate has an explicit resolution;
 2. every expected material journey is included, excluded, or tied to an exception;
 3. every material page/template and interaction family maps to a journey or exclusion;
-4. every confirmed conversion endpoint maps back to an entry and progression path;
+4. every material journey has a declared entry point plus explicit entry and
+   success steps, and every confirmed conversion endpoint maps back to an entry
+   and progression path;
 5. every material journey records applicable success, failure, empty, re-entry,
    and post-conversion decisions;
 6. every material variant has its own evidence state;
