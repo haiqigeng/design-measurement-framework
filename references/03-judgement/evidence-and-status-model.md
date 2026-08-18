@@ -33,6 +33,11 @@ Use:
 - `historical_contract` for prior approved definitions;
 - `data_usage` for collected-data or reporting evidence.
 
+Current-measurement alignment may use `current_implementation` and
+`data_usage` evidence in their respective roles. A `historical_contract`
+source may explain intended or prior semantics but cannot by itself establish
+present coverage.
+
 Reference evidence as `source_id` or `source_id#locator`. Use a URL, page,
 section, sheet/cell, object ID, or other stable locator after `#`. Do not use
 untraceable prose such as “seen on site.”

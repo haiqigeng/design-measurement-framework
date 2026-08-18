@@ -10,8 +10,10 @@
 - [Measurement requirements](#measurement-requirements)
 - [Gate and exception consistency](#gate-and-exception-consistency)
 
-Use `schemas/measurement-framework.schema.json` as the canonical v1 contract.
-Validate with `scripts/validate_framework.py` before rendering or handoff.
+Use `schemas/measurement-framework.schema.json` as the canonical v1.1
+contract. It accepts v1.0 artifacts for backward compatibility. New drafts use
+`schema_version: 1.1.0`. Validate with `scripts/validate_framework.py` before
+rendering or delivery.
 
 ## Top-Level Inventories
 
@@ -36,6 +38,13 @@ Maintain these inventories:
 Do not create separately authored human tables. Render every human view from
 these canonical objects.
 
+## Artifact Authority
+
+Treat `measurement-framework.json` as canonical and
+`measurement-framework.md` as its generated human review surface. If they
+disagree, JSON wins and Markdown must be regenerated. Human-approved changes
+must be represented in JSON before rendering.
+
 ## Stable IDs
 
 Use lowercase ASCII `snake_case` IDs beginning with a letter. Prefix IDs by
@@ -50,6 +59,17 @@ entity when helpful, for example:
 
 Preserve stable IDs during maintenance. Never reuse an ID for a different
 semantic meaning.
+
+## Optional Applicability
+
+Use the optional `applicability` object only when an entity is limited to
+specific target sites, products, markets, audiences, `as_is` or `to_be` states, or
+journey variants within the document scope. It may appear on journeys,
+objectives, KPIs, dimensions, and measurement requirements.
+
+Omit it for a simple scope. Do not build inheritance, factoring, market caches,
+or split outputs around this field. Multiple North Stars require explicit,
+non-overlapping applicability and a rationale.
 
 ## Bidirectional Traceability
 
@@ -98,8 +118,9 @@ Require these journey-level roles for every material journey:
 ## Measurement Requirements
 
 Define semantic facts independently of analytics transport. Require one source
-system and collection-mode expectation. Keep `downstream_mapping_hint`
-optional and `authoritative: false`.
+system and collection-mode expectation. The legacy `downstream_mapping_hint`
+remains optional for v1 compatibility, must be `authoritative: false`, and
+should be omitted from new frameworks.
 
 Do not add final event definitions, exact triggers, parameter requiredness,
 value-domain contracts, dataLayer paths, or push examples to this schema.
@@ -114,6 +135,11 @@ Require:
 - overall status equal to the worst component status;
 - every open material assumption represented by an exception;
 - every unresolved candidate or consideration represented by an exception.
+
+An exception may declare `gate_ids` when it affects an appropriateness gate or
+more than one component gate. When omitted, the validator applies the
+backward-compatible default gate for the exception stage. Every exception must
+be cited by each declared gate and by `overall`.
 
 The validator enforces structural closure. The analyst remains responsible for
 whether the candidate universe, evidence, materiality, formulas, and judgments

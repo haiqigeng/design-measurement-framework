@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "document": {
     "title": "Example quote measurement framework",
     "version": "1.0",
@@ -10,6 +10,7 @@
     "scope_claim": "journey_subset",
     "scope": "Public quote journey",
     "target_sites": ["https://example.com/"],
+    "products": ["Quote service"],
     "markets": ["France"],
     "audiences": ["Prospective customers"]
   },
@@ -196,7 +197,7 @@
       "role": "step_conversion",
       "resolution": "covered_by_existing",
       "kpi_ids": ["kpi_quote_completion_rate"],
-      "reason": "The v1 example has one material start-to-completion transition.",
+      "reason": "The example has one material start-to-completion transition.",
       "evidence_refs": ["source_site#project-details"]
     },
     {
@@ -380,13 +381,7 @@
       "collection_mode": "manual_web_event",
       "priority": "core",
       "verification_status": "verified",
-      "evidence_refs": ["source_site#project-details"],
-      "downstream_mapping_hint": {
-        "authoritative": false,
-        "candidate_event": "quote_start",
-        "candidate_fields": ["quote_type"],
-        "rationale": "A dedicated start signal may represent first meaningful progression; the tracking-plan skill must resolve final semantics."
-      }
+      "evidence_refs": ["source_site#project-details"]
     },
     {
       "requirement_id": "requirement_quote_accepted",
@@ -478,7 +473,7 @@
     "kpi_appropriateness": {
       "status": "pass",
       "tested_at": "2026-08-17T10:00:00+02:00",
-      "rationale": "Each KPI has a defined decision, owner, grain, population, formula, and counter-purpose.",
+      "rationale": "Each KPI has a defined decision, owner, grain, population, formula, role, and relevant guardrail coverage.",
       "exception_ids": []
     },
     "requirement_traceability": {

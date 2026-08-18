@@ -31,6 +31,10 @@ Use tiers independently:
 Do not force a north star for a site or value stream that needs balanced or
 multiple outcomes.
 
+When more than one North Star is justified in one framework, require explicit,
+non-overlapping applicability and a rationale for each. Do not use multiple
+North Stars as a substitute for prioritization within the same scope.
+
 ## Build Outcome And Driver Trees
 
 For every active objective:
@@ -115,3 +119,7 @@ Reject or demote:
 Produce the complete justified set, then highlight the recommended core. Keep
 lower-tier candidates only when they retain a distinct decision or diagnostic
 purpose.
+
+Select the recommended core at framework level. Every active objective still
+needs an appropriate outcome KPI or named exception, but it does not need its
+own mechanically designated core KPI.

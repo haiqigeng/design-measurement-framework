@@ -5,7 +5,7 @@
 - [Decompose KPIs into semantic needs](#decompose-kpis-into-semantic-needs)
 - [Classify the collection mode](#classify-the-collection-mode)
 - [Treat dimensions independently](#treat-dimensions-independently)
-- [Add non-authoritative mapping hints](#add-non-authoritative-mapping-hints)
+- [Keep implementation outside the framework](#keep-implementation-outside-the-framework)
 - [Align existing measurement](#align-existing-measurement)
 - [Traceability closure](#traceability-closure)
 
@@ -64,14 +64,16 @@ Mark potential personal or sensitive data as `review_required`. Mark a field as
 `prohibited` when the available evidence establishes that it must not be
 recommended. Never place raw personal or sensitive examples in the framework.
 
-## Add Non-Authoritative Mapping Hints
+## Keep Implementation Outside The Framework
 
-Add a downstream mapping hint only when it helps a tracking-plan analyst see a
-likely representation. Require `authoritative: false`. Include the candidate
-event/field names and rationale without claiming official fit.
+Semantic requirements are the implementation-independent contract. Do not add
+platform event names, fields, exact triggers, requiredness, value domains,
+dataLayer paths, or push examples during ordinary framework authoring.
 
-Do not verify or finalize GA4 semantics here. Do not write exact triggers,
-requiredness, value domains, dataLayer paths, or push examples.
+The schema accepts the legacy optional `downstream_mapping_hint` only for v1
+compatibility. Omit it by default. If maintaining an existing framework that
+already contains one, keep `authoritative: false` and treat it as historical,
+unapproved context rather than a current implementation decision.
 
 ## Align Existing Measurement
 
@@ -84,8 +86,10 @@ measurement requirement:
 - `not_assessable`: supplied evidence cannot establish coverage.
 
 Record current-measurement references, exact gaps, and the recommended next
-action. Distinguish configuration, live payload, collected analytics data, and
-report usage evidence. Never let one evidence layer prove another.
+action. Use only current implementation or data-usage evidence for alignment;
+a prior framework alone cannot prove current coverage. Distinguish
+configuration, live payload, collected analytics data, and report usage
+evidence. Never let one evidence layer prove another.
 
 Classify current measurements with no requirement link as:
 
@@ -108,4 +112,4 @@ Close requirement traceability only when:
 5. every material non-UI dependency has a source and mode or named exception;
 6. every supplied-current-tracking requirement has an alignment result;
 7. every unlinked current measurement has a visible disposition;
-8. no downstream mapping hint is marked authoritative.
+8. no legacy downstream mapping hint is marked authoritative.

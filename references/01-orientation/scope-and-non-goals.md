@@ -34,13 +34,14 @@ Do not:
 - collect or retain credentials, payment data, or personal information;
 - mutate production data, send real communications, place orders, book
   appointments, or create consequential commitments;
-- redesign the existing `ga4-tracking-plan` skill in this version.
+- invoke, modify, redesign, or depend on another skill.
 
 ## Boundary Decisions
 
-When the user asks for both a framework and a tracking plan, complete and
-validate the framework first. Then hand its semantic requirements to the
-tracking-plan workflow as a separate stage.
+This skill ends after delivering the validated framework JSON and its rendered
+Markdown. If the user also requested implementation or another analytics
+artifact, treat that as separate work outside this skill. Do not add routing,
+invocation, or downstream execution to the framework workflow.
 
 When the user supplies an approved, current framework, review its scope and
 freshness instead of rebuilding it automatically. Refresh only the affected
@@ -49,6 +50,5 @@ materially changed.
 
 When a requested KPI depends primarily on another platform or offline process,
 retain it when it expresses a relevant web outcome. Identify the external
-source and join/dependency rather than excluding it merely because GA4 cannot
-calculate it alone.
-
+source and join or derivation dependency rather than excluding it merely
+because a web analytics platform cannot calculate it alone.

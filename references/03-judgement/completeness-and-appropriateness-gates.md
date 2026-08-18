@@ -87,7 +87,8 @@ Require all of the following:
 - specify every accepted KPI completely;
 - map every formula component to at least one measurement requirement;
 - make every segmentation decision explicit;
-- identify a recommended core without deleting justified supporting metrics;
+- identify a recommended core for the framework without mechanically forcing
+  one core KPI per objective;
 - bind every unresolved material consideration to an exception.
 
 Fail when a KPI is omitted because its supporting fact is not visible in the UI.
@@ -102,7 +103,11 @@ Require every accepted KPI to:
 - use a dimensionally valid formula, grain, population, and time basis;
 - avoid vanity, duplicate, and redundant definitions;
 - use guardrails where optimizing the KPI can plausibly degrade quality or value;
-- distinguish KPI, driver, and diagnostic roles honestly;
+- keep tier and role coherent, including guardrail and diagnostic assignments;
+- distinguish outcome, driver, guardrail, and diagnostic roles honestly;
+- use a North Star only when one durable metric can represent its declared
+  scope without hiding essential counter-outcomes;
+- give multiple North Stars explicit, non-overlapping applicability and rationale;
 - avoid invented targets and unsupported benchmarks;
 - state evidence and assumption status.
 
@@ -115,11 +120,14 @@ Require all of the following:
 
 - map every KPI formula component to a requirement;
 - map every requirement back to at least one KPI;
-- resolve every required dimension and source/collection mode;
+- resolve every required dimension through at least one measurement requirement
+  for each affected KPI and name its source or collection mode;
 - retain backend, lifecycle, business-system, native, joined, and derived needs;
 - prevent a dimension from becoming an event parameter by default;
 - keep downstream mapping hints non-authoritative;
-- classify every requirement when current tracking evidence exists;
+- classify every requirement when current implementation or data-usage evidence exists;
+- use current evidence for every alignment assertion and never let a historical
+  framework alone prove present coverage;
 - give every unlinked current measurement an explicit disposition;
 - prohibit sensitive fields and flag potential personal-data fields for review.
 

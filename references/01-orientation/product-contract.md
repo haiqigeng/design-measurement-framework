@@ -1,34 +1,54 @@
 # Product Contract
 
-## North Star
-
-Turn incomplete website, business, and technical evidence into a
-coverage-closed, decision-ready measurement framework: identify every material
-journey and plausible digital objective in scope, propose the complete set of
-justified and precisely defined KPIs, and trace every KPI to the observable
-facts and dimensions required downstream. Make every omission an explicit
-exclusion or evidence boundary, so the tracking plan cannot silently miss a
-meaningful measurement need or introduce measurement without a business
-purpose.
-
-Apply one governing rule:
-
-> Everything material is accounted for; everything proposed is justified.
-
 ## Product Identity
 
-Produce the business measurement contract upstream of analytics implementation.
-Answer:
+Apply the North Star and governing rule defined in `SKILL.md`. Produce a
+standalone, platform-independent business measurement contract that answers:
 
 1. Which outcomes matter?
 2. Which journeys contribute to them?
-3. Which KPIs express outcomes, drivers, and risks?
-4. Which observable facts and dimensions are needed to calculate them?
-5. Which current measurements support or fail those needs?
-6. Which evidence boundaries could change the answer?
+3. Which KPIs express outcomes, drivers, guardrails, and useful diagnostics?
+4. How is every KPI calculated and used for a decision?
+5. Which observable facts, dimensions, systems, or derivations are required?
+6. Which current measurements support or fail those needs?
+7. Which evidence boundaries could change the answer?
+
+The framework is complete in its own right. It may inform measurement
+strategy, KPI governance, reporting, analysis, experimentation, implementation,
+or other work, but no downstream workflow defines this skill's process,
+schema, or acceptance.
 
 Do not optimize for the number of journeys, objectives, KPIs, requirements, or
 events. Optimize for closed decision coverage with no unsupported proposal.
+
+## Primary Users
+
+- Web analysts and measurement strategists who create, challenge, approve,
+  revise, and maintain the framework.
+- Digital analytics leads and consultants responsible for defining success and
+  assessing whether current measurement supports business needs.
+- Product, ecommerce, marketing, content, sales, finance, support, operations,
+  service, and mission stakeholders who review intended outcomes and decisions.
+- Analytics and data practitioners who must calculate the same KPI from the
+  same definition.
+
+Reporting, experimentation, implementation, and other analytics teams are
+possible consumers of the canonical JSON. They are not primary product owners
+and do not change the framework workflow.
+
+## Standalone Use Cases
+
+Use the framework for:
+
+- measurement-strategy creation, review, and maintenance;
+- journey and objective clarification;
+- North Star, outcome, driver, guardrail, and diagnostic KPI design;
+- stakeholder alignment around outcomes and decisions;
+- KPI definition, rationalization, and governance;
+- semantic assessment of current measurement against business needs;
+- prioritization of missing data capabilities;
+- calculation contracts for reporting and analysis requirements; and
+- a platform-independent business contract that other workflows may consume.
 
 ## Coverage-Closed Meaning
 
@@ -59,36 +79,30 @@ Apply both qualities at every layer:
 Completeness without appropriateness creates inventories and bloat.
 Appropriateness without completeness creates elegant blind spots.
 
-## Primary Users
-
-- Enable web analysts to challenge, approve, revise, and maintain the framework.
-- Enable business, product, marketing, sales, finance, support, operations, and
-  mission owners to recognize their intended outcomes and decisions.
-- Enable tracking-plan designers to consume explicit measurement needs without
-  reconstructing strategy from website controls.
-- Enable analytics practitioners to calculate the same KPI from the same
-  definition.
-
 ## One Quality Standard
 
 Use one adaptive workflow. Activate relevant business-model, alignment,
-authenticated, transactional, or lifecycle capabilities conditionally. Never
-offer a reduced-quality mode or substitute a page/event cap for closure.
+authenticated, transactional, lifecycle, or multi-scope considerations only
+when applicable. Never offer a reduced-quality mode or substitute a page,
+metric, event, or time cap for closure.
 
 ## Acceptance Outcome
 
 Declare the framework ready only when:
 
 1. every mandatory gate is `pass` or `pass_with_exceptions`;
-2. every exception is explicit, bounded, and linked to affected IDs;
-3. every material included journey maps to at least one active objective;
-4. every active objective has recorded outcome, driver, and guardrail decisions;
-5. every material journey has recorded completion, step-conversion, and
-   friction decisions;
-6. every KPI formula component maps to a measurement requirement;
-7. every segmentation decision names its source or explains why none is needed;
-8. every current-tracking requirement is classified when current tracking was supplied;
-9. no final GA4 or dataLayer implementation decision is presented as approved;
-10. a stakeholder can understand the human output and a downstream agent can
-    consume the canonical JSON without guessing.
-
+2. every exception is explicit, bounded, linked to affected IDs, and cited by
+   the correct quality gate;
+3. every material included journey and variant is resolved and every material
+   journey maps to at least one active objective;
+4. every objective and journey has the required KPI-role considerations;
+5. every active objective has an appropriate outcome KPI or a named exception;
+6. every accepted KPI is precise, actionable, coherent, and traceable;
+7. every KPI formula component and required dimension maps to a semantic
+   measurement requirement;
+8. every current-measurement requirement is classified when relevant evidence
+   was supplied;
+9. no platform-specific implementation decision is presented as approved;
+10. a stakeholder can understand the Markdown and a machine consumer can use
+    the canonical JSON without guessing; and
+11. the Markdown is demonstrably rendered from and consistent with the JSON.
