@@ -58,6 +58,33 @@ class MeasurementFrameworkRendererTests(unittest.TestCase):
         self.assertIn("### Journey steps and evidence states", rendered)
         self.assertIn("Open quote form", rendered)
 
+    def test_objective_and_journey_evidence_is_human_visible(self) -> None:
+        rendered = render_framework(self.framework)
+        self.assertIn("### Objective evidence and rationale", rendered)
+        self.assertIn(
+            "| Objective | Confidence | Owner | Rationale | Evidence |", rendered
+        )
+        self.assertIn("Sales and marketing", rendered)
+        self.assertIn("source_business#qualified-demand", rendered)
+        self.assertIn("Entry point(s)", rendered)
+        self.assertIn("/quote", rendered)
+        self.assertIn("source_business#accepted-request", rendered)
+
+    def test_coverage_summaries_expose_type_and_lens_resolutions(self) -> None:
+        rendered = render_framework(self.framework)
+        self.assertIn("### Discovery candidate summary", rendered)
+        self.assertIn(
+            "| Type | Total | Material | mapped | merged | excluded | unresolved |",
+            rendered,
+        )
+        self.assertIn("| form | 1 | 1 | 1 | 0 | 0 | 0 |", rendered)
+        self.assertIn("## Objective consideration summary", rendered)
+        self.assertIn(
+            "Counts expose the recorded sweep depth for human review; they are not quality thresholds.",
+            rendered,
+        )
+        self.assertIn("| risk_guardrail | 1 | 0 | 1 | 0 | 0 | 0 |", rendered)
+
     def test_open_exception_becomes_an_evidence_request(self) -> None:
         add_exception(
             self.framework,

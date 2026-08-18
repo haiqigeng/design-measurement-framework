@@ -142,7 +142,9 @@ for the canonical contract.
 
 ## Compatibility
 
-Release `v1.1.1` retains schema version `1.1.0` and improves draft hygiene and
-the human review order without changing the canonical contract. The validator
-continues to accept `1.0.0` framework artifacts while new drafts use the
-current schema.
+Release `v1.1.2` retains schema version `1.1.0` and makes canonical objective
+evidence, journey entry and evidence coverage, discovery-candidate types, and
+objective-sweep depth visible in the generated Markdown. These are review
+improvements only: the schema, validator, workflow, and acceptance rules are
+unchanged. The validator continues to accept `1.0.0` framework artifacts while
+new drafts use the current schema.

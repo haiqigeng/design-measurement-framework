@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.1.2] - 2026-08-18
+
+### Changed
+
+- Rendered Markdown now exposes objective confidence, ownership, rationale,
+  and evidence already present in canonical JSON.
+- Journey summaries now show entry points and journey-level evidence.
+- Coverage evidence now summarizes discovery candidates by type and resolution.
+- Objective considerations now include a lens-by-resolution summary without
+  treating counts as quality thresholds.
+
+### Compatibility
+
+- No schema, validator, analytical workflow, or acceptance-rule change.
+- Schema `1.1.0` and existing `1.0.0` artifact compatibility are preserved.
+
 ## [1.1.1] - 2026-08-18
 
 ### Changed

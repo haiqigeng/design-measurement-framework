@@ -152,6 +152,7 @@ def render_framework(data: dict[str, Any]) -> str:
         if item["status"] in {"confirmed", "hypothesis"}
     ]
     material_journeys = [item for item in data["journeys"] if item["material"]]
+    objective_lenses = {item["lens"] for item in data["objective_considerations"]}
     core_kpis = [item for item in ordered_kpis if item["recommended_core"]]
     core_and_north_star = [
         item
@@ -187,6 +188,9 @@ def render_framework(data: dict[str, Any]) -> str:
             "",
             f"- Material journeys: **{len(material_journeys)}**",
             f"- Active objectives: **{len(active_objectives)}**",
+            "- Objective considerations: "
+            f"**{len(data['objective_considerations'])}** across "
+            f"**{len(objective_lenses)}** lenses",
             f"- Accepted KPIs: **{len(ordered_kpis)}**; recommended core: **{len(core_kpis)}**",
             f"- Semantic measurement requirements: **{len(data['measurement_requirements'])}**",
             f"- Explicit exceptions: **{len(data['exceptions'])}**",
@@ -263,6 +267,23 @@ def render_framework(data: dict[str, Any]) -> str:
         )
     )
 
+    lines.extend(["", "### Objective evidence and rationale", ""])
+    lines.extend(
+        _table(
+            ["Objective", "Confidence", "Owner", "Rationale", "Evidence"],
+            (
+                (
+                    item["statement"],
+                    item["confidence"],
+                    item.get("owner_role", "") or "Not assigned",
+                    item["rationale"],
+                    item["evidence_refs"],
+                )
+                for item in data["objectives"]
+            ),
+        )
+    )
+
     lines.extend(["", "### Journeys", ""])
     lines.extend(
         _table(
@@ -272,7 +293,9 @@ def render_framework(data: dict[str, Any]) -> str:
                 "Material",
                 "Status",
                 "Value domain(s)",
+                "Entry point(s)",
                 "Variant(s)",
+                "Evidence",
                 "Applicability",
             ],
             (
@@ -282,7 +305,9 @@ def render_framework(data: dict[str, Any]) -> str:
                     item["material"],
                     item["status"],
                     item["value_domains"],
+                    item["entry_points"],
                     [variant["name"] for variant in item["variants"]],
+                    item["evidence_refs"],
                     _format_applicability(item),
                 )
                 for item in data["journeys"]
@@ -570,6 +595,19 @@ def render_framework(data: dict[str, Any]) -> str:
     resolution_counts = Counter(
         item["resolution"] for item in data["discovery_candidates"]
     )
+    candidate_type_counts = Counter(
+        (item["candidate_type"], item["resolution"])
+        for item in data["discovery_candidates"]
+    )
+    candidate_type_totals = Counter(
+        item["candidate_type"] for item in data["discovery_candidates"]
+    )
+    candidate_type_material = Counter(
+        item["candidate_type"]
+        for item in data["discovery_candidates"]
+        if item["material"]
+    )
+    candidate_resolutions = ("mapped", "merged", "excluded", "unresolved")
     lines.extend(
         [
             "",
@@ -583,6 +621,25 @@ def render_framework(data: dict[str, Any]) -> str:
             "",
         ]
     )
+    lines.extend(["### Discovery candidate summary", ""])
+    lines.extend(
+        _table(
+            ["Type", "Total", "Material", *candidate_resolutions],
+            (
+                (
+                    candidate_type,
+                    candidate_type_totals[candidate_type],
+                    candidate_type_material[candidate_type],
+                    *(
+                        candidate_type_counts[(candidate_type, resolution)]
+                        for resolution in candidate_resolutions
+                    ),
+                )
+                for candidate_type in sorted(candidate_type_totals)
+            ),
+        )
+    )
+    lines.extend(["", "### Discovery candidate ledger", ""])
     lines.extend(
         _table(
             ["Candidate", "Type", "Material", "Resolution", "Journey(s)", "Reason"],
@@ -596,6 +653,42 @@ def render_framework(data: dict[str, Any]) -> str:
                     item["reason"],
                 )
                 for item in data["discovery_candidates"]
+            ),
+        )
+    )
+
+    objective_resolution_order = (
+        "objective_proposed",
+        "covered_by_existing",
+        "none_with_reason",
+        "out_of_scope",
+        "unresolved",
+    )
+    objective_lens_counts = Counter(
+        (item["lens"], item["resolution"])
+        for item in data["objective_considerations"]
+    )
+    objective_lens_totals = Counter(
+        item["lens"] for item in data["objective_considerations"]
+    )
+    lines.extend(["", "## Objective consideration summary", ""])
+    lines.append(
+        "Counts expose the recorded sweep depth for human review; they are not quality thresholds."
+    )
+    lines.append("")
+    lines.extend(
+        _table(
+            ["Lens", "Total", *objective_resolution_order],
+            (
+                (
+                    lens,
+                    objective_lens_totals[lens],
+                    *(
+                        objective_lens_counts[(lens, resolution)]
+                        for resolution in objective_resolution_order
+                    ),
+                )
+                for lens in sorted(objective_lens_totals)
             ),
         )
     )
