@@ -142,9 +142,9 @@ for the canonical contract.
 
 ## Compatibility
 
-Release `v1.1.2` is the stable renderer-only baseline and retains schema version
-`1.1.0`. Current v1.2 development adds a version-gated structured formula
-contract, material-journey entry and success closure, conditional core
-guardrails, and non-blocking duplicate-KPI advisories. New drafts use schema
-`1.2.0`; the validator continues to accept `1.0.0` and `1.1.0` artifacts under
-their prior acceptance behavior.
+Release `v1.2.0` is the current release and uses schema version `1.2.0`. It
+adds a version-gated structured formula contract, material-journey entry and
+success closure, conditional core guardrails, and non-blocking duplicate-KPI
+advisories. Release `v1.1.2` remains the renderer-only compatibility baseline.
+The validator continues to accept `1.0.0` and `1.1.0` artifacts under their
+prior acceptance behavior.

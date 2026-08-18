@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.0] - 2026-08-18
 
 ### Added
 
@@ -19,7 +19,7 @@
 
 - Schema `1.0.0` and `1.1.0` artifacts retain their prior acceptance behavior.
 - No analytics-platform event, parameter, trigger, dataLayer, or tracking-plan
-  contract was added.
+  contract is included in this release.
 
 ## [1.1.2] - 2026-08-18
 
