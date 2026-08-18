@@ -62,7 +62,6 @@ def build_draft(
             "products": products,
             "markets": markets,
             "audiences": audiences,
-            "notes": "Working draft created by init_framework.py; replace every placeholder through evidence-backed analysis.",
         },
         "sources": [
             {

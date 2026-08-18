@@ -28,6 +28,7 @@ class MeasurementFrameworkRendererTests(unittest.TestCase):
             "## Objective and journey coverage",
             "## Top missing or partial measurement needs",
             "## Evidence requests",
+            "## Quality gate detail",
             "## KPI system",
             "## Measurement requirements",
             "## Coverage evidence",
@@ -35,6 +36,19 @@ class MeasurementFrameworkRendererTests(unittest.TestCase):
         ]
         positions = [rendered.index(heading) for heading in headings]
         self.assertEqual(positions, sorted(positions))
+
+    def test_compact_status_leads_and_detailed_gates_remain_visible(self) -> None:
+        rendered = render_framework(self.framework)
+        summary_end = rendered.index("## Measurement strategy summary")
+        summary = rendered[:summary_end]
+        self.assertIn("- Overall gate: **pass**", summary)
+        self.assertNotIn("| Gate | Status | Rationale | Exceptions |", summary)
+
+        detail_start = rendered.index("## Quality gate detail")
+        detail_end = rendered.index("## KPI system")
+        detail = rendered[detail_start:detail_end]
+        for gate_name in self.framework["quality_gates"]:
+            self.assertIn(f"| {gate_name} |", detail)
 
     def test_material_variant_coverage_is_visible(self) -> None:
         rendered = render_framework(self.framework)
@@ -52,6 +66,8 @@ class MeasurementFrameworkRendererTests(unittest.TestCase):
             affected_ids=["variant_quote_standard"],
         )
         rendered = render_framework(self.framework)
+        self.assertIn("- Overall gate: **pass_with_exceptions**", rendered)
+        self.assertIn("- Exceptions: `exception_variant_access`", rendered)
         self.assertIn("## Evidence requests", rendered)
         self.assertIn("Exception `exception_variant_access`", rendered)
         self.assertIn("Additional evidence is required", rendered)

@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.1] - 2026-08-18
+
+### Changed
+
+- New drafts no longer seed an internal initialization instruction into the
+  optional `document.notes` field.
+- Rendered Markdown now leads with compact overall quality status, scope,
+  strategy, core KPIs, journey and objective coverage, missing needs, and
+  evidence requests before presenting the complete quality-gate table.
+
+### Compatibility
+
+- No schema, validator, analytical workflow, or acceptance-rule change.
+- Schema `1.1.0` and existing `1.0.0` artifact compatibility are preserved.
+
 ## [1.1.0] - 2026-08-18
 
 ### Added

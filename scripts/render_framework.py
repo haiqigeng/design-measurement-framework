@@ -158,6 +158,8 @@ def render_framework(data: dict[str, Any]) -> str:
         for item in ordered_kpis
         if item["recommended_core"] or item["tier"] == "north_star"
     ]
+    gates = data["quality_gates"]
+    overall_gate = gates["overall"]
 
     lines: list[str] = [
         f"# {document['title']}",
@@ -170,23 +172,13 @@ def render_framework(data: dict[str, Any]) -> str:
         "",
         "## Quality status",
         "",
+        f"- Overall gate: **{overall_gate['status']}**",
+        f"- Rationale: {overall_gate['rationale']}",
+        "- Exceptions: "
+        + (
+            ", ".join(f"`{value}`" for value in overall_gate["exception_ids"]) or "None"
+        ),
     ]
-
-    gates = data["quality_gates"]
-    lines.extend(
-        _table(
-            ["Gate", "Status", "Rationale", "Exceptions"],
-            (
-                (
-                    name,
-                    gates[name]["status"],
-                    gates[name]["rationale"],
-                    gates[name]["exception_ids"],
-                )
-                for name in [*GATE_ORDER, "overall"]
-            ),
-        )
-    )
 
     lines.extend(
         [
@@ -410,6 +402,22 @@ def render_framework(data: dict[str, Any]) -> str:
         )
     else:
         lines.append("No open evidence request is recorded.")
+
+    lines.extend(["", "## Quality gate detail", ""])
+    lines.extend(
+        _table(
+            ["Gate", "Status", "Rationale", "Exceptions"],
+            (
+                (
+                    name,
+                    gates[name]["status"],
+                    gates[name]["rationale"],
+                    gates[name]["exception_ids"],
+                )
+                for name in [*GATE_ORDER, "overall"]
+            ),
+        )
+    )
 
     lines.extend(["", "## KPI system", ""])
     lines.extend(

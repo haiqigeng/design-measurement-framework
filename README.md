@@ -142,6 +142,7 @@ for the canonical contract.
 
 ## Compatibility
 
-Release `v1.1.0` introduces additive schema capabilities under schema version
-`1.1.0`. The validator continues to accept `1.0.0` framework artifacts while
-new drafts use the current schema.
+Release `v1.1.1` retains schema version `1.1.0` and improves draft hygiene and
+the human review order without changing the canonical contract. The validator
+continues to accept `1.0.0` framework artifacts while new drafts use the
+current schema.

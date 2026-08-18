@@ -27,6 +27,7 @@ class MeasurementFrameworkInitializerTests(unittest.TestCase):
         self.assertEqual(draft["schema_version"], "1.1.0")
         self.assertEqual(draft["document"]["products"], ["Public website"])
         self.assertRegex(draft["document"]["run_id"], r"^run_[a-f0-9]{32}$")
+        self.assertNotIn("notes", draft["document"])
         self.assertEqual(draft["journeys"], [])
         self.assertTrue(
             all(gate["status"] == "fail" for gate in draft["quality_gates"].values())
