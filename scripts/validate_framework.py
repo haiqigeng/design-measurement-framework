@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
+from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,41 +15,31 @@ from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from advisories import review_advisories
+from diagnostics import (
+    APPLICABILITY_KEYS,
+    DEFAULT_STAGE_GATES,
+    GATE_ORDER,
+    candidate_census,
+    consideration_reciprocity_issues,
+    evidence_eligibility_issues,
+    evidence_maturity,
+    exception_scope_issues,
+    gate_facts,
+    relational_applicability_issues,
+    schema_at_least,
+)
 from formula_contract import (
-    review_advisories,
     uses_v1_2_contract,
     validate_structured_formula,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SCHEMA = ROOT / "schemas" / "measurement-framework.schema.json"
+VALIDATOR_VERSION = "1.3.0"
 
 CURRENT_ALIGNMENT_ROLES = {"current_implementation", "data_usage"}
 INCOMPLETE_JOURNEY_STATUSES = {"partial", "not_tested", "externally_blocked"}
-GATE_ORDER = (
-    "journey_completeness",
-    "journey_appropriateness",
-    "objective_completeness",
-    "objective_appropriateness",
-    "kpi_completeness",
-    "kpi_appropriateness",
-    "requirement_traceability",
-)
-DEFAULT_STAGE_GATES = {
-    "journey": {"journey_completeness"},
-    "objective": {"objective_completeness"},
-    "kpi": {"kpi_completeness"},
-    "measurement_requirement": {"requirement_traceability"},
-    "alignment": {"requirement_traceability"},
-}
-APPLICABILITY_KEYS = (
-    "target_sites",
-    "products",
-    "markets",
-    "audiences",
-    "states",
-    "journey_variant_ids",
-)
 
 
 def _json_path(parts: Iterable[Any]) -> str:
@@ -144,9 +136,9 @@ def _walk_evidence_refs(
     if isinstance(node, dict):
         for key, value in node.items():
             child_path = f"{path}.{key}"
-            if key in {"evidence_refs", "current_measurement_refs"} and isinstance(
-                value, list
-            ):
+            if (
+                key.endswith("evidence_refs") or key == "current_measurement_refs"
+            ) and isinstance(value, list):
                 for index, ref in enumerate(value):
                     if not isinstance(ref, str):
                         continue
@@ -237,6 +229,9 @@ def _validate_applicability(
         "audiences": set(document.get("audiences", []))
         if isinstance(document.get("audiences"), list)
         else set(),
+        "locales": set(document.get("locales", []))
+        if isinstance(document.get("locales"), list)
+        else set(),
     }
     for key, declared_scope in scoped_values.items():
         values = applicability.get(key, [])
@@ -307,6 +302,7 @@ def _applicability_overlaps(left: dict[str, Any], right: dict[str, Any]) -> bool
 @dataclass(frozen=True)
 class FrameworkIndex:
     registry: dict[str, str]
+    intake_targets: dict[str, dict[str, Any]]
     sources: dict[str, dict[str, Any]]
     journeys: dict[str, dict[str, Any]]
     objectives: dict[str, dict[str, Any]]
@@ -328,6 +324,30 @@ class KpiLinks:
 
 def _index_framework(data: dict[str, Any], errors: list[str]) -> FrameworkIndex:
     registry: dict[str, str] = {}
+    intake = data.get("intake_baseline", {})
+    intake_targets_records = (
+        intake.get("targets", []) if isinstance(intake, dict) else []
+    )
+    if not isinstance(intake_targets_records, list):
+        intake_targets_records = []
+    intake_targets = _register_ids(
+        [item for item in intake_targets_records if isinstance(item, dict)],
+        "target_id",
+        "intake_baseline.targets",
+        registry,
+        errors,
+    )
+    authorization_records = (
+        intake.get("authorizations", []) if isinstance(intake, dict) else []
+    )
+    if isinstance(authorization_records, list):
+        _register_ids(
+            [item for item in authorization_records if isinstance(item, dict)],
+            "authorization_id",
+            "intake_baseline.authorizations",
+            registry,
+            errors,
+        )
     sources = _register_ids(
         _records(data, "sources"), "source_id", "sources", registry, errors
     )
@@ -412,6 +432,7 @@ def _index_framework(data: dict[str, Any], errors: list[str]) -> FrameworkIndex:
 
     return FrameworkIndex(
         registry=registry,
+        intake_targets=intake_targets,
         sources=sources,
         journeys=journeys,
         objectives=objectives,
@@ -439,6 +460,7 @@ def _validate_evidence_and_applicability(
         ("kpis", index.kpi_records),
         ("dimensions", _records(data, "dimensions")),
         ("measurement_requirements", _records(data, "measurement_requirements")),
+        ("exceptions", _records(data, "exceptions")),
     )
     for collection_name, records in applicable_collections:
         for record_index, record in enumerate(records):
@@ -449,6 +471,142 @@ def _validate_evidence_and_applicability(
                 index.variant_ids,
                 errors,
             )
+
+
+def _validate_intake_baseline(
+    data: dict[str, Any], index: FrameworkIndex, errors: list[str]
+) -> None:
+    if not schema_at_least(data, (1, 3, 0)):
+        return
+    intake = data.get("intake_baseline", {})
+    document = data.get("document", {})
+    if not isinstance(intake, dict) or not isinstance(document, dict):
+        return
+
+    if intake.get("target_state") != document.get("target_state"):
+        errors.append(
+            "$.intake_baseline.target_state: must match document.target_state"
+        )
+    if intake.get("scope_claim") != document.get("scope_claim"):
+        errors.append("$.intake_baseline.scope_claim: must match document.scope_claim")
+    for key in ("products", "markets", "audiences", "locales"):
+        intake_values = intake.get(key, [])
+        document_values = document.get(key, [])
+        if isinstance(intake_values, list) and isinstance(document_values, list):
+            if set(intake_values) != set(document_values):
+                errors.append(
+                    f"$.intake_baseline.{key}: must match resolved document.{key}; "
+                    "record any approved scope change in the baseline before delivery"
+                )
+
+    requested_targets: set[str] = set()
+    resolved_targets: set[str] = set()
+    source_ids = set(index.sources)
+    exception_ids = set(index.exceptions)
+
+    def includes_user_input(references: Any) -> bool:
+        return isinstance(references, list) and any(
+            (source_id := _source_prefix(reference)) in index.sources
+            and index.sources[source_id].get("source_type") == "user_input"
+            for reference in references
+            if isinstance(reference, str)
+        )
+
+    if not includes_user_input(intake.get("source_evidence_refs", [])):
+        errors.append(
+            "$.intake_baseline.source_evidence_refs: intake provenance requires user-input evidence"
+        )
+
+    target_records = intake.get("targets", [])
+    for target_index, target in enumerate(
+        target_records if isinstance(target_records, list) else []
+    ):
+        if not isinstance(target, dict):
+            continue
+        path = f"$.intake_baseline.targets[{target_index}]"
+        requested = target.get("requested_target")
+        if isinstance(requested, str):
+            if requested in requested_targets:
+                errors.append(f"{path}.requested_target: duplicate requested target")
+            requested_targets.add(requested)
+        disposition = target.get("disposition")
+        resolved = target.get("resolved_scope_targets", [])
+        if disposition in {"included", "canonicalized"} and not resolved:
+            errors.append(
+                f"{path}.resolved_scope_targets: {disposition} requires at least one resolved scope target"
+            )
+        if disposition in {"excluded_with_approval", "unresolved"} and resolved:
+            errors.append(
+                f"{path}.resolved_scope_targets: {disposition} must not retain resolved scope targets"
+            )
+        if isinstance(resolved, list):
+            resolved_targets.update(
+                value for value in resolved if isinstance(value, str)
+            )
+
+        _require_refs(
+            target.get("representative_source_ids", []),
+            source_ids,
+            f"{path}.representative_source_ids",
+            "source ID",
+            errors,
+        )
+        if not includes_user_input(target.get("request_evidence_refs", [])):
+            errors.append(
+                f"{path}.request_evidence_refs: requested target requires user-input evidence"
+            )
+        basis = target.get("resolution_basis")
+        exception_id = target.get("exception_id")
+        if basis == "assumed" or disposition == "unresolved":
+            if exception_id not in exception_ids:
+                errors.append(
+                    f"{path}.exception_id: assumed or unresolved scope requires a valid exception"
+                )
+            else:
+                exception = index.exceptions[exception_id]
+                target_id = target.get("target_id")
+                if exception.get("stage") != "scope" or target_id not in exception.get(
+                    "affected_ids", []
+                ):
+                    errors.append(
+                        f"{path}.exception_id: scope exception must affect target {target_id!r}"
+                    )
+        if disposition == "excluded_with_approval" and basis == "assumed":
+            errors.append(
+                f"{path}.resolution_basis: exclusion requires explicit request or user confirmation"
+            )
+
+        if basis in {
+            "explicit_in_request",
+            "user_confirmed",
+        } and not includes_user_input(target.get("resolution_evidence_refs", [])):
+            errors.append(
+                f"{path}.resolution_evidence_refs: {basis} requires user-input evidence"
+            )
+
+    document_targets = set(document.get("target_sites", []))
+    if resolved_targets != document_targets:
+        missing = sorted(resolved_targets - document_targets)
+        added = sorted(document_targets - resolved_targets)
+        errors.append(
+            "$.document.target_sites: delivery scope differs from intake dispositions; "
+            f"missing_from_document={missing}, absent_from_intake={added}"
+        )
+
+    target_ids = set(index.intake_targets)
+    authorizations = intake.get("authorizations", [])
+    for auth_index, authorization in enumerate(
+        authorizations if isinstance(authorizations, list) else []
+    ):
+        if not isinstance(authorization, dict):
+            continue
+        _require_refs(
+            authorization.get("target_ids", []),
+            target_ids,
+            f"$.intake_baseline.authorizations[{auth_index}].target_ids",
+            "intake target ID",
+            errors,
+        )
 
 
 def _validate_journey_layer(
@@ -529,6 +687,101 @@ def _validate_journey_layer(
                     f"$.journeys[{journey_index}].steps[{step_index}]: incomplete step status "
                     "must be reflected by the parent material journey status"
                 )
+            if (
+                schema_at_least(data, (1, 3, 0))
+                and journey.get("material") is True
+                and step.get("status") in INCOMPLETE_JOURNEY_STATUSES
+                and not _has_exception(
+                    str(step.get("step_id", "")), index.exceptions, "journey"
+                )
+            ):
+                errors.append(
+                    f"$.journeys[{journey_index}].steps[{step_index}]: incomplete "
+                    "material step requires an exact linked journey exception"
+                )
+
+        if schema_at_least(data, (1, 3, 0)) and journey.get("material") is True:
+            decisions = journey.get("state_decisions", [])
+            decision_records = (
+                [item for item in decisions if isinstance(item, dict)]
+                if isinstance(decisions, list)
+                else []
+            )
+            required_states = {
+                "failure",
+                "empty",
+                "recovery",
+                "reentry",
+                "post_conversion",
+            }
+            represented = Counter(
+                str(item.get("state", "")) for item in decision_records
+            )
+            for state in sorted(required_states - set(represented)):
+                errors.append(
+                    f"$.journeys[{journey_index}].state_decisions: missing explicit {state!r} decision"
+                )
+            for state, count in represented.items():
+                if state and count > 1:
+                    errors.append(
+                        f"$.journeys[{journey_index}].state_decisions: duplicate decision for {state!r}"
+                    )
+            step_ids = {
+                str(step.get("step_id"))
+                for step in steps
+                if isinstance(step, dict) and step.get("step_id")
+            }
+            step_states = {
+                str(step.get("step_id")): str(step.get("state"))
+                for step in steps
+                if isinstance(step, dict) and step.get("step_id")
+            }
+            for decision_index, decision in enumerate(decision_records):
+                path = f"$.journeys[{journey_index}].state_decisions[{decision_index}]"
+                linked_steps = decision.get("step_ids", [])
+                _require_refs(
+                    linked_steps,
+                    step_ids,
+                    f"{path}.step_ids",
+                    "step ID in this journey",
+                    errors,
+                )
+                resolution = decision.get("resolution")
+                state = decision.get("state")
+                if resolution in {"covered", "merged"} and not linked_steps:
+                    errors.append(
+                        f"{path}.step_ids: {resolution} requires at least one supporting step"
+                    )
+                if (
+                    resolution == "covered"
+                    and linked_steps
+                    and not any(
+                        step_states.get(str(step_id)) == state
+                        for step_id in linked_steps
+                    )
+                ):
+                    errors.append(
+                        f"{path}.step_ids: covered {state!r} decision requires a matching state step"
+                    )
+                if resolution in {"not_applicable", "unresolved"} and linked_steps:
+                    errors.append(
+                        f"{path}.step_ids: {resolution} must not retain supporting steps"
+                    )
+                exception_id = decision.get("exception_id")
+                if resolution == "unresolved":
+                    exception = index.exceptions.get(str(exception_id))
+                    if (
+                        not exception
+                        or exception.get("stage") != "journey"
+                        or journey_id not in exception.get("affected_ids", [])
+                    ):
+                        errors.append(
+                            f"{path}.exception_id: unresolved state requires a journey exception affecting {journey_id!r}"
+                        )
+                elif exception_id is not None:
+                    errors.append(
+                        f"{path}.exception_id: only an unresolved state decision may retain an exception"
+                    )
 
         variants = journey.get("variants", [])
         for variant_index, variant in enumerate(
@@ -1242,6 +1495,8 @@ def _validate_assumptions_and_exceptions(
             "affected ID",
             errors,
         )
+    if schema_at_least(data, (1, 3, 0)):
+        errors.extend(exception_scope_issues(data))
 
 
 def _validate_quality_gates(
@@ -1355,6 +1610,7 @@ def validate_framework(
 
     index = _index_framework(data, errors)
     _validate_evidence_and_applicability(data, index, errors)
+    _validate_intake_baseline(data, index, errors)
 
     material_journey_ids = _validate_journey_layer(data, index, errors)
 
@@ -1376,7 +1632,35 @@ def validate_framework(
     _validate_assumptions_and_exceptions(data, index, errors)
     _validate_quality_gates(data, index, delivery, errors)
 
+    if schema_at_least(data, (1, 3, 0)):
+        errors.extend(evidence_eligibility_issues(data))
+        errors.extend(relational_applicability_issues(data))
+        errors.extend(consideration_reciprocity_issues(data))
+
     return sorted(set(errors))
+
+
+def build_validation_report(
+    data: dict[str, Any],
+    errors: list[str],
+    *,
+    artifact_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Build one reproducible machine-readable diagnostic report."""
+
+    return {
+        "valid": not errors,
+        "artifact_sha256": artifact_sha256,
+        "schema_version": data.get("schema_version"),
+        "validator_version": VALIDATOR_VERSION,
+        "errors": sorted(set(errors)),
+        "warnings": review_advisories(data),
+        "counts": {
+            "evidence_maturity": evidence_maturity(data),
+            "candidate_census": candidate_census(data),
+        },
+        "gate_facts": gate_facts(data),
+    }
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
@@ -1404,19 +1688,32 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv or sys.argv[1:])
     warnings: list[str] = []
+    report: dict[str, Any] | None = None
     try:
-        with args.framework.open("r", encoding="utf-8") as handle:
-            data = json.load(handle)
-    except (OSError, json.JSONDecodeError) as exc:
+        raw = args.framework.read_bytes()
+        artifact_sha256 = hashlib.sha256(raw).hexdigest()
+        data = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         errors = [f"{args.framework}: {exc}"]
     else:
         errors = validate_framework(data, args.schema, delivery=args.delivery)
-        warnings = review_advisories(data) if not errors else []
+        warnings = review_advisories(data)
+        report = build_validation_report(data, errors, artifact_sha256=artifact_sha256)
 
     if args.json_output:
         print(
             json.dumps(
-                {"valid": not errors, "errors": errors, "warnings": warnings},
+                report
+                or {
+                    "valid": False,
+                    "artifact_sha256": None,
+                    "schema_version": None,
+                    "validator_version": VALIDATOR_VERSION,
+                    "errors": errors,
+                    "warnings": [],
+                    "counts": {},
+                    "gate_facts": {},
+                },
                 indent=2,
                 ensure_ascii=False,
             )
@@ -1425,6 +1722,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"INVALID: {len(errors)} error(s)")
         for error in errors:
             print(f"- {error}")
+        if warnings:
+            print(f"ADVISORIES: {len(warnings)} non-blocking review item(s)")
+            for warning in warnings:
+                print(f"- {warning}")
     else:
         print("VALID: measurement framework is structurally and traceably closed")
         if warnings:

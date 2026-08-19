@@ -33,6 +33,35 @@ request to create, update, or execute one. Do not request credentials, payment
 details, or personal information for retention in artifacts. Ask for a
 specific unblock only when it can materially change scope or meaning.
 
+## Intake Baseline
+
+For schema 1.3, create `intake_baseline` as the first artifact-writing action,
+before browsing, aliasing, canonicalization, or exclusion. Preserve each
+requested non-secret target and classify its disposition as:
+
+- `included`: retained directly in delivery scope;
+- `canonicalized`: represented by one or more equivalent resolved production
+  scope targets with an explicit basis;
+- `excluded_with_approval`: removed only with user evidence; or
+- `unresolved`: retained as a scope exception until resolved.
+
+Keep request evidence separate from resolution evidence. Use
+`explicit_in_request`, `user_confirmed`, or `assumed` as the resolution basis;
+an assumption requires an exact scope exception. The union of included and
+canonicalized `resolved_scope_targets` must equal `document.target_sites` at
+delivery.
+
+Use `representative_source_ids` to connect production targets to live, UAT,
+staging, document, or user sources used to investigate them. A shared UAT
+origin may represent several production targets, but it never becomes the
+production delivery scope merely because it is the browsed environment.
+
+Record only categorical authorization, affected target IDs, constraints, and
+evidence. Never copy passwords, account identifiers, personal values, tokens,
+or other secrets into the baseline. Request user confirmation only for a
+material transformation or ambiguity, not when the resolved scope is an
+unchanged transcription of the request.
+
 ## Evidence Roles
 
 Classify each source only by what it can prove:
@@ -50,6 +79,8 @@ Classify each source only by what it can prove:
 
 Do not let one source claim authority outside its role. Record conflicts and
 resolve them according to target state without deleting the disagreement.
+Directly observed or externally blocked current behavior also requires a
+source observation time and a stable URL or evidence-reference locator.
 
 ## Canonical Machine Output
 
@@ -58,6 +89,8 @@ Produce `measurement-framework.json` conforming to
 contains:
 
 - document scope, target state, language, and run identity;
+- intake scope provenance, target dispositions, locales, and non-secret
+  authorization boundaries;
 - source inventory;
 - journey-discovery candidates and resolutions;
 - journey inventory with material states and variants;
@@ -80,15 +113,16 @@ not invoke that consumer or change its own workflow for it.
 Render `measurement-framework.md` only from valid canonical JSON. Present:
 
 1. scope, target state, evidence boundaries, and gate status;
-2. measurement-strategy summary;
-3. North Star and recommended-core KPIs;
-4. material journey and objective coverage;
-5. top missing or partial measurement needs;
-6. evidence requests;
-7. complete KPI definitions;
-8. semantic measurement requirements and source or collection mode;
-9. current-measurement alignment when applicable; and
-10. assumptions, exclusions, unresolved boundaries, and implementation-independent notes.
+2. measurement-strategy and evidence-maturity summary;
+3. intake-to-delivery scope provenance;
+4. North Star and recommended-core KPIs;
+5. material journey and objective coverage;
+6. top missing or partial measurement needs;
+7. evidence requests;
+8. complete KPI definitions;
+9. semantic measurement requirements and source or collection mode;
+10. current-measurement alignment when applicable; and
+11. assumptions, exclusions, unresolved boundaries, and implementation-independent notes.
 
 Keep the Markdown decision-oriented. Do not expose raw browsing logs, internal
 reasoning, schema mechanics, or generic measurement education unless requested.

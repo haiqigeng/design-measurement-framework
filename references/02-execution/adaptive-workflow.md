@@ -19,7 +19,12 @@ framework artifacts.
 
 ## 1. Resolve The Run
 
-Create a fresh run identity for a new framework. Resolve:
+Create a fresh run identity for a new framework. Before exploration or
+normalization, transcribe the requested non-secret targets, scope, and
+categorical authorizations into `intake_baseline`. This first record preserves
+what was requested; aliases, canonicalizations, exclusions, assumptions, and
+representative evidence sources are separate disposition fields rather than
+rewrites of the request. Then resolve:
 
 - scope claim: whole site or named journey subset;
 - target sites, products, markets, audiences, and language;
@@ -34,6 +39,13 @@ Ask one consolidated intake only when the request does not establish these
 sufficiently. Accept unknown optional fields and record assumptions. Never
 reuse another client's evidence or nearby artifacts merely because they exist
 on disk or in session context.
+
+Do not ritualize confirmation. If the resolved production scope is unchanged,
+the explicit request evidence is sufficient. If a target is canonicalized,
+excluded, assumed, or otherwise materially transformed, obtain user evidence
+or retain an exact scope exception. Keep production delivery targets in
+`resolved_scope_targets`; connect a UAT, staging, or other investigation source
+through `representative_source_ids`. Never store credentials or account values.
 
 Initialize a working draft with `scripts/init_framework.py` after resolving
 scope. Treat its empty inventories and failed gates as explicit work remaining,
@@ -58,7 +70,13 @@ Read `journey-discovery-and-coverage.md` and `safe-interaction.md`.
    unresolved with a named exception.
 6. Build the final journey inventory and record evidence status separately
    from analyst resolution.
-7. Apply journey completeness and appropriateness gates.
+7. Record explicit decisions for failure, empty, recovery, re-entry, and
+   post-conversion on each material journey. A decision may be covered, merged,
+   not applicable, or unresolved; it does not force execution.
+8. Run `scripts/candidate_census.py` when useful to expose unresolved material
+   candidates, journeys without candidates, state-decision coverage, and
+   production targets without representative sources.
+9. Apply journey completeness and appropriateness gates.
 
 Do not derive objectives from an open, silent material journey gap. Continue
 with explicit exceptions when access or evidence cannot be obtained.
@@ -136,7 +154,11 @@ Read the judgement references.
 4. Resolve failures or create bounded exceptions with affected IDs and impact.
 5. Cite each exception from the quality gate it actually affects and from the
    overall gate.
-6. Validate `measurement-framework.json` with the supplied validator.
+6. Compare resolved delivery scope with the intake baseline and reject any
+   unapproved substitution.
+7. Validate `measurement-framework.json` with the supplied validator. Use
+   `--json` when reviewers need an artifact-bound hash, computed counts,
+   advisories, and gate facts that can be reproduced independently.
 
 Never describe `fail` as complete. Describe `pass_with_exceptions` as
 coverage-closed only within its explicitly bounded evidence limitations.
@@ -158,9 +180,11 @@ of this skill.
 When a prior framework exists:
 
 1. preserve stable IDs for unchanged entities;
-2. compare scope, target state, sources, journeys, objective considerations,
+2. capture the maintenance request as the current run's intake baseline and
+   preserve the prior framework as historical evidence;
+3. compare scope, target state, sources, journeys, objective considerations,
    KPIs, dimensions, requirements, alignment, and exceptions;
-3. refresh only affected evidence while rerunning every closure gate;
-4. retain client-approved definitions unless new evidence creates a conflict;
-5. deliver one complete current canonical file and regenerated Markdown, not
+4. refresh only affected evidence while rerunning every closure gate;
+5. retain client-approved definitions unless new evidence creates a conflict;
+6. deliver one complete current canonical file and regenerated Markdown, not
    an addendum as the only source of truth.

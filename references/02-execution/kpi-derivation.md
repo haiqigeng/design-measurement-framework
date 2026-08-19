@@ -57,6 +57,11 @@ Do not promote every step or driver into a KPI. Retain a KPI only when an owner
 can use it to decide or act. Record the consideration decision so rejection
 does not become a completeness gap.
 
+When a consideration resolves to `kpi_proposed` or `covered_by_existing`, each
+referenced KPI must link back to that consideration's objective or journey.
+This reciprocity proves that the recorded decision and the accepted KPI still
+describe the same scope.
+
 ## Specify The Formula Precisely
 
 Record for every KPI:
@@ -77,11 +82,17 @@ Record for every KPI:
 - recommended-core status;
 - evidence and assumption status.
 
+When a KPI has journey links, its effective applicability normally derives
+from those journeys; otherwise it derives from its linked objectives. A
+legitimate cross-journey business KPI may be broader, but it must carry an
+`applicability_basis` with rationale and evidence. Do not duplicate or narrow a
+sound business KPI solely to avoid an explicit basis.
+
 Require two competent analysts using the same sources to calculate the same
 number.
 
-For schema `1.2.0`, make the existing `formula.expression` both readable and
-machine-checkable:
+For schema `1.2.0` and later, make the existing `formula.expression` both
+readable and machine-checkable:
 
 - write it with stable lowercase `snake_case` component symbols;
 - declare `calculation_type` and `result_unit`;
@@ -150,3 +161,8 @@ guardrail consideration resolved to a real guardrail KPI, include a cited
 guardrail for that objective in the core or record a KPI-appropriateness
 exception. Do not manufacture a guardrail when the consideration is explicitly
 and credibly `none_with_reason` or `not_applicable`.
+
+Treat a non-discriminating core or suspiciously uniform priority, ownership,
+grain, or reporting-window pattern as a review prompt, never a quota. Resolve
+the advisory through evidence and decision usefulness; do not mechanically
+change counts or wording to silence it.

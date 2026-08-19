@@ -93,6 +93,13 @@ Record:
 - likely owner role when inferable;
 - assumptions or conflicts.
 
+By default, an objective's effective applicability cannot exceed the union of
+its linked journeys. When a legitimate business objective spans a broader
+site, audience, market, locale, product, state, or variant scope than the
+journeys currently linked to it, record `applicability_basis` with a concrete
+rationale and evidence. Do not narrow the objective merely to satisfy the
+validator, and do not use the basis as an unsupported bypass.
+
 Phrase inferred objectives in the organization's own vocabulary. Prefer a
 specific outcome and population over generic phrases such as “increase
 engagement.”

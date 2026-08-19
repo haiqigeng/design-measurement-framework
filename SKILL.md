@@ -49,6 +49,13 @@ scope, target state, markets, audiences, evidence roles, supplied objectives or
 KPIs, and safe-interaction boundaries when available. Continue with explicit
 assumptions and bounded gaps when optional evidence is absent.
 
+As the first action of a new run, preserve the requested non-secret targets,
+scope, and categorical authorizations in `intake_baseline` before exploration
+or normalization. Keep production delivery scope separate from test or staging
+sources used as representative evidence. Never retain credentials or personal
+values. Ask for confirmation only when a consequential scope transformation or
+ambiguity remains; do not add a ritual confirmation step to an unchanged brief.
+
 Produce exactly two core artifacts:
 
 - `measurement-framework.json` is the canonical machine-readable source of truth;
@@ -63,7 +70,8 @@ the JSON, but this skill neither invokes nor adapts itself to them.
 Use one workflow and one quality standard for creation, review, maintenance,
 and semantic-alignment work:
 
-1. Resolve scope, target state, evidence roles, and safe boundaries.
+1. Capture the intake baseline, then resolve scope, target state, evidence
+   roles, and safe boundaries.
 2. Build and close the material journey model.
 3. Identify and assess objective candidates.
 4. Derive and validate the KPI system.
@@ -72,9 +80,12 @@ and semantic-alignment work:
 7. Apply completeness, appropriateness, traceability, and exception gates.
 8. Validate JSON, render Markdown, deliver, and stop.
 
-Let evidence change how a step is executed, never whether journey, objective,
-KPI, and requirement closure are assessed. Do not introduce lightweight,
-standard, enterprise, event-count, or time-boxed quality modes.
+In step 1, capture the intake baseline before resolving aliases,
+canonicalizations, exclusions, or evidence-source bindings. Let evidence change
+how a step is executed and the maturity of the resulting claims, never whether
+journey, objective, KPI, and requirement closure are assessed. Do not
+introduce lightweight, standard, enterprise, event-count, or time-boxed
+quality modes.
 
 Ask one consolidated intake when essential context is missing. Ask later only
 for a specific access unblock, a consequential safe-interaction decision, or
@@ -140,6 +151,12 @@ The draft intentionally starts incomplete with failed gates. Replace every
 empty inventory through evidence-backed analysis; never change a gate merely
 to satisfy validation.
 
+Inspect inventory closure without changing the artifact when useful:
+
+```powershell
+python scripts/candidate_census.py measurement-framework.json
+```
+
 Validate and render only after analysis is complete:
 
 ```powershell
@@ -147,14 +164,20 @@ python scripts/validate_framework.py measurement-framework.json --delivery
 python scripts/render_framework.py measurement-framework.json --output measurement-framework.md
 ```
 
-Use validator `--json` only when machine-readable diagnostics are useful. Use
-renderer `--allow-failed` only to inspect a structurally complete working
-draft; never treat that output as an accepted delivery.
+Use validator `--json` when an artifact-bound diagnostic report is useful. It
+includes the artifact hash, validator and schema versions, computed gate facts,
+evidence-maturity counts, candidate census, errors, and advisories; it is a
+diagnostic view, not a third core artifact. Use renderer `--allow-failed` only
+to inspect a structurally complete working draft; never treat that output as
+an accepted delivery.
 
 Declare the result ready only when every mandatory gate is `pass` or
 `pass_with_exceptions`, every exception is explicit and correctly linked, all
-traceability closes, and Markdown agrees with JSON. A useful failed draft is
-still a draft. `pass_with_exceptions` is never fully verified.
+traceability closes, delivery scope agrees with the intake dispositions, and
+Markdown agrees with JSON. An `observed` claim must have timestamped direct
+live/test evidence with a stable locator; an `externally_blocked` claim must
+evidence the attempted boundary. A useful failed draft is still a draft.
+`pass_with_exceptions` is never fully verified.
 
 ## Boundaries
 

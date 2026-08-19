@@ -40,6 +40,12 @@ only for what it can prove. Missing evidence becomes an explicit assumption,
 evidence request, or bounded gap; credentials, payment details, and personal
 information are not needed in the artifacts.
 
+Schema 1.3 preserves a structured intake baseline before investigation: each
+requested non-secret target is included, canonicalized, explicitly excluded,
+or left unresolved. Production scope remains the delivery scope even when one
+safe UAT or staging source represents several production sites or locales.
+Categorical testing authorization may be recorded, but secrets never are.
+
 ## Outputs
 
 Every completed delivery contains exactly two core artifacts:
@@ -53,9 +59,15 @@ JSON is authoritative. If Markdown and JSON disagree, update JSON and render
 Markdown again. Authorized machine consumers can use the JSON directly; this
 skill does not invoke or adapt itself to another skill or workflow.
 
+The Markdown exposes scope provenance, evidence roles and maturity, explicit
+material-state decisions, computed gate facts, and bounded exceptions. The
+same facts are available in the validator's machine-readable diagnostic
+output; this does not create a third delivery artifact.
+
 ## Workflow
 
-1. Resolve scope, target state, evidence roles, and safe boundaries.
+1. Capture the non-secret intake baseline, then resolve scope, target state,
+   evidence roles, and safe boundaries.
 2. Build and close the material journey model, including relevant states and
    variants.
 3. Identify and assess objective candidates.
@@ -71,11 +83,19 @@ Evidence changes the depth and route of the work, not whether material
 journey, objective, KPI, and requirement closure is assessed. There are no
 lightweight or event-count-only quality modes.
 
+For current-state claims, `observed` means timestamped direct live/test
+behavior with a stable locator. `externally_blocked` means a direct attempt
+encountered a recorded boundary. Technical or business-system evidence may
+still confirm a capability or backend outcome; it is never relabeled as
+observed execution.
+
 ## Acceptance rules
 
 A delivery is ready only when:
 
 - every mandatory quality gate is `pass` or `pass_with_exceptions`;
+- resolved delivery scope matches the intake dispositions, with every
+  transformation confirmed or explicitly bounded;
 - every exception is explicit, evidence-linked where possible, and correctly
   linked to the affected gate or requirement;
 - the in-scope candidate universe is closed for material journeys, objectives,
@@ -84,7 +104,9 @@ A delivery is ready only when:
   precisely defined, and supported by evidence or a stated assumption;
 - KPI-to-requirement and requirement-to-evidence traceability closes;
 - current-measurement alignment, when supplied, covers every requirement with
-  a semantic status; and
+  a semantic status;
+- observed and externally blocked claims meet their evidence-eligibility and
+  provenance rules; and
 - the JSON validates and the Markdown is freshly rendered from that JSON.
 
 `pass_with_exceptions` is usable but not fully verified. A structurally valid
@@ -122,12 +144,23 @@ The initializer creates an intentionally incomplete draft with failed gates.
 Replace its example values through evidence-backed analysis; do not change a
 gate merely to satisfy validation.
 
+Inspect candidate, state-decision, and representative-source coverage without
+mutating the artifact:
+
+```powershell
+python scripts/candidate_census.py measurement-framework.json
+```
+
 Validate and render a completed framework:
 
 ```powershell
 python scripts/validate_framework.py measurement-framework.json --delivery
 python scripts/render_framework.py measurement-framework.json --output measurement-framework.md
 ```
+
+Add `--json` to validation for a reproducible diagnostic block containing the
+artifact SHA-256, schema and validator versions, evidence maturity, candidate
+census, computed gate facts, errors, and advisories.
 
 Run the repository tests with:
 
@@ -142,9 +175,10 @@ for the canonical contract.
 
 ## Compatibility
 
-Release `v1.2.0` is the current release and uses schema version `1.2.0`. It
-adds a version-gated structured formula contract, material-journey entry and
-success closure, conditional core guardrails, and non-blocking duplicate-KPI
-advisories. Release `v1.1.2` remains the renderer-only compatibility baseline.
-The validator continues to accept `1.0.0` and `1.1.0` artifacts under their
-prior acceptance behavior.
+Release `v1.3.0` is the current release and uses schema `1.3.0`. It adds intake
+scope provenance, evidence eligibility and maturity, relational applicability,
+reverse consideration links, bounded exception scope, explicit material-state
+decisions, computed gate facts, reproducible diagnostics, and a candidate
+census helper. The validator continues to accept `1.0.0`, `1.1.0`, and `1.2.0`
+artifacts under their prior blocking behavior; newly detectable semantic risks
+are warnings for legacy artifacts.

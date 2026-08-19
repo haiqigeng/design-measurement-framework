@@ -6,6 +6,12 @@ Treat production, staging, sandbox, local, and design/prototype evidence
 separately. Do not assume staging is current or authoritative merely because it
 is safer. Resolve authority from the target state and record divergences.
 
+Keep production targets in delivery scope. Record staging or sandbox as a
+representative source for those targets, not as an automatic replacement for
+them. One test environment may represent several production locales or roles
+when the relationship is evidenced, but each production target retains its
+own intake disposition.
+
 Use production primarily for real content, routes, controls, and safe reversible
 states. Use a confirmed non-production environment for consequential funnel
 completion and backend outcomes.
@@ -15,6 +21,11 @@ completion and backend outcomes.
 Use clearly synthetic, non-routable values when interaction is necessary.
 Never retain credentials or synthetic personal values in the framework,
 screenshots, logs, or chat summaries.
+
+The intake baseline may record that authenticated testing or safe
+non-production interaction was authorized, which target IDs it covers, and the
+constraints. Store only that categorical authorization and its evidence
+reference—never the account identifier, password, token, or entered values.
 
 In production, do not:
 

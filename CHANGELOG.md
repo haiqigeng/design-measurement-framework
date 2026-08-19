@@ -1,5 +1,52 @@
 # Changelog
 
+## [Unreleased]
+
+## [1.3.0] - 2026-08-19
+
+### Added
+
+- Schema `1.3.0` intake baselines that preserve requested non-secret targets,
+  resolved production scope, resolution evidence, representative test/live
+  sources, locales, and categorical safe-testing authorization.
+- Evidence-eligibility checks for `observed` and `externally_blocked` claims,
+  including source-level observation time and a stable locator, while retaining
+  technical and business-system confirmation for capabilities and backend
+  outcomes.
+- Relational applicability checks with evidence-backed
+  `applicability_basis` overrides, reverse KPI-consideration reciprocity, and
+  bounded exception-stage, gate-direction, and scope checks.
+- Explicit failure, empty, recovery, re-entry, and post-conversion decisions
+  for material journeys without requiring every state to be executed.
+- Evidence-maturity rendering, source-role visibility, scope-provenance tables,
+  and compact computed facts beside every quality-gate rationale.
+- Artifact-bound `--json` validation diagnostics with SHA-256, validator and
+  schema versions, candidate census, maturity counts, gate facts, errors, and
+  advisories.
+- A read-only `scripts/candidate_census.py` helper and conservative advisories
+  for anti-circular discovery closure, non-discriminating core selection, and
+  contextual uniformity.
+
+### Changed
+
+- New drafts use schema `1.3.0`, initialize an intentionally unresolved intake
+  baseline, and accept optional locale declarations.
+- Production delivery scope and representative UAT/test evidence are modeled
+  separately so evidence-source consolidation cannot silently replace scope.
+- Incomplete steps on material journeys require an exact journey exception;
+  unresolved material state decisions require a journey-level exception.
+- Formula validation remains isolated in `formula_contract.py`; shared
+  semantic diagnostics live in `diagnostics.py`, and non-blocking review
+  prompts live in `advisories.py`.
+
+### Compatibility
+
+- Schema `1.0.0`, `1.1.0`, and `1.2.0` artifacts retain their prior blocking
+  acceptance behavior. Newly detectable evidence, reciprocity, applicability,
+  and exception-scope risks are non-blocking legacy advisories.
+- No tracking-plan, GA4 event/parameter, implementation-readiness, fixed-quota,
+  mandatory execution, or universal evidence-bundle contract is added.
+
 ## [1.2.0] - 2026-08-18
 
 ### Added

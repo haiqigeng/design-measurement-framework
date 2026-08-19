@@ -9,8 +9,10 @@ measurement-framework workflow and creates no dependency on another skill.
 Supply the valid `measurement-framework.json`. Preserve:
 
 - framework, journey, variant, objective, KPI, dimension, and requirement IDs;
+- intake target dispositions and resolved production scope;
 - target state, scope, and optional applicability;
-- source and evidence references;
+- source roles, observation times, evidence references, and record-level
+  evidence statuses;
 - KPI formulas, grains, populations, windows, and decision uses;
 - semantic facts and timing or state requirements;
 - source-system and collection-mode expectations; and

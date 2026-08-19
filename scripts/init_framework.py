@@ -34,6 +34,7 @@ def build_draft(
     products: list[str],
     markets: list[str],
     audiences: list[str],
+    locales: list[str],
     source_reference: str,
 ) -> dict[str, Any]:
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -48,7 +49,7 @@ def build_draft(
         for name in GATE_NAMES
     }
     return {
-        "schema_version": "1.2.0",
+        "schema_version": "1.3.0",
         "document": {
             "title": title,
             "version": "0.1-draft",
@@ -62,6 +63,32 @@ def build_draft(
             "products": products,
             "markets": markets,
             "audiences": audiences,
+            "locales": locales,
+        },
+        "intake_baseline": {
+            "captured_at": now,
+            "source_evidence_refs": ["source_intake#scope"],
+            "target_state": target_state,
+            "scope_claim": scope_claim,
+            "scope_summary": scope,
+            "targets": [
+                {
+                    "target_id": f"target_site_{index:02d}",
+                    "requested_target": target,
+                    "disposition": "included",
+                    "resolved_scope_targets": [target],
+                    "resolution_basis": "explicit_in_request",
+                    "request_evidence_refs": ["source_intake#scope"],
+                    "resolution_evidence_refs": ["source_intake#scope"],
+                    "representative_source_ids": [],
+                }
+                for index, target in enumerate(target_sites, start=1)
+            ],
+            "products": products,
+            "markets": markets,
+            "audiences": audiences,
+            "locales": locales,
+            "authorizations": [],
         },
         "sources": [
             {
@@ -104,6 +131,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--product", action="append", default=[], dest="products")
     parser.add_argument("--market", action="append", default=[], dest="markets")
     parser.add_argument("--audience", action="append", default=[], dest="audiences")
+    parser.add_argument("--locale", action="append", default=[], dest="locales")
     parser.add_argument("--source-reference", default="User request")
     parser.add_argument("--output", "-o", required=True, type=Path)
     parser.add_argument(
@@ -131,6 +159,7 @@ def main(argv: list[str] | None = None) -> int:
         products=args.products,
         markets=args.markets,
         audiences=args.audiences,
+        locales=args.locales,
         source_reference=args.source_reference,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)

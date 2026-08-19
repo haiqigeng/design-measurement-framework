@@ -17,6 +17,22 @@ def downgrade_formula_contract(
     framework: dict[str, Any], *, schema_version: str
 ) -> None:
     framework["schema_version"] = schema_version
+    framework.pop("intake_baseline", None)
+    framework.get("document", {}).pop("locales", None)
+    for source in framework.get("sources", []):
+        source.pop("observed_at", None)
+    for journey in framework.get("journeys", []):
+        journey.pop("state_decisions", None)
+    for collection in (
+        "objectives",
+        "kpis",
+        "dimensions",
+        "measurement_requirements",
+    ):
+        for record in framework.get(collection, []):
+            record.pop("applicability_basis", None)
+    for exception in framework.get("exceptions", []):
+        exception.pop("applicability", None)
     for kpi in framework["kpis"]:
         formula = kpi["formula"]
         formula.pop("calculation_type", None)
@@ -25,6 +41,63 @@ def downgrade_formula_contract(
             component.pop("symbol", None)
             component.pop("counting_unit", None)
             component.pop("grain", None)
+
+
+def upgrade_to_v1_3(framework: dict[str, Any]) -> None:
+    framework["schema_version"] = "1.3.0"
+    document = framework["document"]
+    document["locales"] = [document["language"]]
+    site_source = next(
+        source
+        for source in framework["sources"]
+        if source["source_id"] == "source_site"
+    )
+    site_source["observed_at"] = "2026-08-17T09:30:00+02:00"
+    framework["intake_baseline"] = {
+        "captured_at": "2026-08-17T09:00:00+02:00",
+        "source_evidence_refs": ["source_business#brief"],
+        "target_state": document["target_state"],
+        "scope_claim": document["scope_claim"],
+        "scope_summary": document["scope"],
+        "targets": [
+            {
+                "target_id": "target_quote_site",
+                "requested_target": "https://example.com/",
+                "disposition": "included",
+                "resolved_scope_targets": ["https://example.com/"],
+                "resolution_basis": "explicit_in_request",
+                "request_evidence_refs": ["source_business#brief"],
+                "resolution_evidence_refs": ["source_business#brief"],
+                "representative_source_ids": ["source_site"],
+            }
+        ],
+        "products": list(document.get("products", [])),
+        "markets": list(document.get("markets", [])),
+        "audiences": list(document.get("audiences", [])),
+        "locales": list(document.get("locales", [])),
+        "authorizations": [],
+    }
+    journey = framework["journeys"][0]
+    failure_step = next(step for step in journey["steps"] if step["state"] == "failure")
+    journey["state_decisions"] = [
+        {
+            "state": "failure",
+            "resolution": "covered",
+            "step_ids": [failure_step["step_id"]],
+            "reason": "The material validation-failure state is directly represented.",
+            "evidence_refs": ["source_site#validation"],
+        },
+        *[
+            {
+                "state": state,
+                "resolution": "not_applicable",
+                "step_ids": [],
+                "reason": f"No distinct {state.replace('_', ' ')} state is material in this bounded quote example.",
+                "evidence_refs": ["source_business#brief"],
+            }
+            for state in ("empty", "recovery", "reentry", "post_conversion")
+        ],
+    ]
 
 
 def add_duplicate_kpi(framework: dict[str, Any]) -> dict[str, Any]:
@@ -107,6 +180,7 @@ def add_exception(
     framework["exceptions"].append(exception)
 
     default_gate = {
+        "scope": "journey_completeness",
         "journey": "journey_completeness",
         "objective": "objective_completeness",
         "kpi": "kpi_completeness",

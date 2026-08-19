@@ -13,12 +13,14 @@ from helpers import (
     add_secondary_objective_without_core,
     downgrade_formula_contract,
     load_framework,
+    upgrade_to_v1_3,
 )
 
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from formula_contract import review_advisories  # noqa: E402
-from validate_framework import validate_framework  # noqa: E402
+from advisories import review_advisories  # noqa: E402
+from diagnostics import candidate_census  # noqa: E402
+from validate_framework import build_validation_report, validate_framework  # noqa: E402
 
 
 class MeasurementFrameworkValidationTests(unittest.TestCase):
@@ -30,6 +32,408 @@ class MeasurementFrameworkValidationTests(unittest.TestCase):
 
     def test_valid_minimal_framework_passes(self) -> None:
         self.assertEqual(validate_framework(self.framework, delivery=True), [])
+
+    def test_valid_v1_3_framework_passes(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        self.assertEqual(validate_framework(self.framework, delivery=True), [])
+
+    def test_nonmaterial_v1_3_journey_does_not_require_state_decisions(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        journey = self.framework["journeys"][0]
+        journey["material"] = False
+        journey.pop("state_decisions")
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_v1_3_requires_intake_baseline(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        self.framework.pop("intake_baseline")
+        self.assert_has_error(validate_framework(self.framework), "intake_baseline")
+
+    def test_intake_baseline_requires_user_request_provenance(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        baseline = self.framework["intake_baseline"]
+        baseline["source_evidence_refs"] = ["source_site#scope"]
+        target = baseline["targets"][0]
+        target["request_evidence_refs"] = ["source_site#scope"]
+        errors = validate_framework(self.framework)
+        self.assert_has_error(errors, "intake provenance requires user-input evidence")
+        self.assert_has_error(errors, "requested target requires user-input evidence")
+
+    def test_intake_preserves_production_scope_while_test_source_provides_evidence(
+        self,
+    ) -> None:
+        upgrade_to_v1_3(self.framework)
+        source = next(
+            item
+            for item in self.framework["sources"]
+            if item["source_id"] == "source_site"
+        )
+        source["source_type"] = "test_website"
+        source["reference"] = "https://uat.example.test/quote"
+        self.assertEqual(
+            self.framework["document"]["target_sites"], ["https://example.com/"]
+        )
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_multiple_production_targets_can_share_representative_uat_evidence(
+        self,
+    ) -> None:
+        upgrade_to_v1_3(self.framework)
+        production_targets = [
+            "https://example.com/fr/",
+            "https://example.com/nl/",
+        ]
+        document = self.framework["document"]
+        document["target_sites"] = production_targets
+        document["locales"] = ["fr-BE", "nl-BE"]
+        baseline = self.framework["intake_baseline"]
+        baseline["locales"] = ["fr-BE", "nl-BE"]
+        baseline["targets"] = [
+            {
+                "target_id": f"target_site_{index}",
+                "requested_target": target,
+                "disposition": "included",
+                "resolved_scope_targets": [target],
+                "resolution_basis": "explicit_in_request",
+                "request_evidence_refs": ["source_business#brief"],
+                "resolution_evidence_refs": ["source_business#brief"],
+                "representative_source_ids": ["source_site"],
+            }
+            for index, target in enumerate(production_targets, start=1)
+        ]
+        site_source = next(
+            item
+            for item in self.framework["sources"]
+            if item["source_id"] == "source_site"
+        )
+        site_source["source_type"] = "test_website"
+        site_source["reference"] = "https://uat.example.test/quote"
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_user_confirmed_canonicalization_can_change_resolved_scope(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        target = self.framework["intake_baseline"]["targets"][0]
+        target["requested_target"] = "https://www.example.com/"
+        target["disposition"] = "canonicalized"
+        target["resolution_basis"] = "user_confirmed"
+        target["resolution_evidence_refs"] = ["source_business#canonical-domain"]
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_unapproved_delivery_scope_substitution_fails(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        self.framework["document"]["target_sites"] = ["https://other.example/"]
+        errors = validate_framework(self.framework)
+        self.assert_has_error(errors, "delivery scope differs from intake dispositions")
+
+    def test_assumed_scope_requires_exact_scope_exception(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        target = self.framework["intake_baseline"]["targets"][0]
+        target["resolution_basis"] = "assumed"
+        self.assert_has_error(
+            validate_framework(self.framework), "scope requires a valid exception"
+        )
+
+        add_exception(
+            self.framework,
+            exception_id="exception_assumed_scope",
+            stage="scope",
+            affected_ids=[target["target_id"]],
+        )
+        target["exception_id"] = "exception_assumed_scope"
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_observed_claim_requires_timestamped_live_or_test_evidence(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        source = next(
+            item
+            for item in self.framework["sources"]
+            if item["source_id"] == "source_site"
+        )
+        source.pop("observed_at")
+        self.assert_has_error(validate_framework(self.framework), "observed_at")
+
+        source["observed_at"] = "2026-08-17T09:30:00+02:00"
+        source["source_type"] = "technical_specification"
+        source["evidence_role"] = "data_capability"
+        self.assert_has_error(
+            validate_framework(self.framework),
+            "observed status requires direct live/test behavior evidence",
+        )
+
+    def test_exact_source_url_is_a_valid_observed_locator_without_fragment(
+        self,
+    ) -> None:
+        upgrade_to_v1_3(self.framework)
+        journey = self.framework["journeys"][0]
+        journey["evidence_refs"] = ["source_site"]
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_backend_evidence_can_confirm_outcome_without_observation(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        self.framework["sources"].append(
+            {
+                "source_id": "source_backend_contract",
+                "source_type": "technical_specification",
+                "reference": "Accepted-request API contract",
+                "evidence_role": "data_capability",
+                "state": "as_is",
+                "supports": ["The backend can return an accepted-request outcome."],
+            }
+        )
+        success = next(
+            step
+            for step in self.framework["journeys"][0]["steps"]
+            if step["state"] == "success"
+        )
+        success["evidence_refs"] = ["source_backend_contract#accepted-outcome"]
+        self.assertEqual(success["status"], "confirmed")
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_externally_blocked_claim_requires_evidence_of_the_attempt(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        journey = self.framework["journeys"][0]
+        step = next(item for item in journey["steps"] if item["state"] == "progression")
+        journey["status"] = "externally_blocked"
+        step["status"] = "externally_blocked"
+        step["evidence_refs"] = ["source_business#reported-blocker"]
+        add_exception(
+            self.framework,
+            exception_id="exception_progression_blocked",
+            stage="journey",
+            affected_ids=[journey["journey_id"], step["step_id"]],
+        )
+        self.assert_has_error(
+            validate_framework(self.framework),
+            "requires direct live/test evidence of the attempted boundary",
+        )
+
+        step["evidence_refs"] = ["source_site#attempted-progression"]
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_future_state_attempt_can_support_an_external_blocker(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        self.framework["document"]["target_state"] = "to_be"
+        self.framework["intake_baseline"]["target_state"] = "to_be"
+        source = next(
+            item
+            for item in self.framework["sources"]
+            if item["source_id"] == "source_site"
+        )
+        source["state"] = "to_be"
+        journey = self.framework["journeys"][0]
+        journey["status"] = "externally_blocked"
+        journey["evidence_refs"] = ["source_site#attempted-future-flow"]
+        for step in journey["steps"]:
+            step["status"] = "planned"
+        for variant in journey["variants"]:
+            variant["status"] = "planned"
+        add_exception(
+            self.framework,
+            exception_id="exception_future_access",
+            stage="journey",
+            affected_ids=[journey["journey_id"]],
+        )
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_v1_3_consideration_requires_reverse_kpi_link(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        consideration = next(
+            item
+            for item in self.framework["kpi_considerations"]
+            if item["scope_type"] == "journey"
+        )
+        kpi = next(
+            item
+            for item in self.framework["kpis"]
+            if item["kpi_id"] in consideration["kpi_ids"]
+        )
+        kpi["journey_ids"] = []
+        self.assert_has_error(validate_framework(self.framework), "does not link back")
+
+    def test_legacy_consideration_mismatch_warns_without_failing(self) -> None:
+        consideration = next(
+            item
+            for item in self.framework["kpi_considerations"]
+            if item["scope_type"] == "journey"
+        )
+        kpi = next(
+            item
+            for item in self.framework["kpis"]
+            if item["kpi_id"] in consideration["kpi_ids"]
+        )
+        kpi["journey_ids"] = []
+        self.assertEqual(validate_framework(self.framework), [])
+        self.assertTrue(
+            any(
+                "Legacy reciprocity advisory" in item
+                for item in review_advisories(self.framework)
+            )
+        )
+
+    def test_legacy_artifact_is_not_warned_for_new_observed_at_field(self) -> None:
+        self.assertFalse(
+            any("observed_at" in item for item in review_advisories(self.framework))
+        )
+
+    def test_relational_applicability_overreach_requires_basis(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        self.framework["document"]["audiences"] = ["Customers", "Providers"]
+        self.framework["intake_baseline"]["audiences"] = ["Customers", "Providers"]
+        journey = self.framework["journeys"][0]
+        journey["applicability"] = {"audiences": ["Customers"]}
+        errors = validate_framework(self.framework)
+        self.assert_has_error(errors, "exceeds linked-entity scope")
+
+        for collection in (
+            "objectives",
+            "kpis",
+            "dimensions",
+            "measurement_requirements",
+        ):
+            for record in self.framework[collection]:
+                record["applicability_basis"] = {
+                    "rationale": "The business definition applies across both authorized audiences.",
+                    "evidence_refs": ["source_business#brief"],
+                }
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_broader_business_kpi_without_journey_links_can_use_a_basis(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        self.framework["document"]["audiences"] = ["Customers", "Providers"]
+        self.framework["intake_baseline"]["audiences"] = ["Customers", "Providers"]
+        self.framework["journeys"][0]["applicability"] = {"audiences": ["Customers"]}
+        self.framework["objectives"][0]["applicability"] = {"audiences": ["Customers"]}
+        target_kpi = next(
+            item
+            for item in self.framework["kpis"]
+            if item["kpi_id"] == "kpi_qualified_quote_rate"
+        )
+        for kpi in self.framework["kpis"]:
+            if kpi is not target_kpi:
+                kpi["applicability"] = {"audiences": ["Customers"]}
+        target_kpi["journey_ids"] = []
+        self.assert_has_error(
+            validate_framework(self.framework), "exceeds linked-entity scope"
+        )
+
+        target_kpi["applicability_basis"] = {
+            "rationale": "This business quality rate is defined across both authorized audiences.",
+            "evidence_refs": ["source_business#qualified-demand"],
+        }
+        for requirement in self.framework["measurement_requirements"]:
+            requirement["applicability_basis"] = {
+                "rationale": "The supporting business fact is available for the broader KPI population.",
+                "evidence_refs": ["source_business#qualified-demand"],
+            }
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_exception_stage_and_scope_are_structurally_bounded(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        self.framework["document"]["audiences"] = ["Customers", "Providers"]
+        self.framework["intake_baseline"]["audiences"] = ["Customers", "Providers"]
+        journey = self.framework["journeys"][0]
+        journey["applicability"] = {"audiences": ["Customers"]}
+        for collection in (
+            "objectives",
+            "kpis",
+            "dimensions",
+            "measurement_requirements",
+        ):
+            for record in self.framework[collection]:
+                record["applicability"] = {"audiences": ["Customers"]}
+        add_exception(
+            self.framework,
+            exception_id="exception_provider_only",
+            stage="journey",
+            affected_ids=[journey["journey_id"]],
+        )
+        exception = self.framework["exceptions"][-1]
+        exception["applicability"] = {"audiences": ["Providers"]}
+        errors = validate_framework(self.framework)
+        self.assert_has_error(errors, "disjoint from affected entity")
+
+        exception["applicability"] = {"audiences": ["Customers"]}
+        exception["gate_ids"] = ["journey_completeness"]
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_kpi_exception_cannot_affect_upstream_journey_gate(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        add_exception(
+            self.framework,
+            exception_id="exception_kpi_upstream",
+            stage="kpi",
+            affected_ids=["kpi_quote_completion_rate"],
+            gate_ids=["journey_completeness"],
+        )
+        self.assert_has_error(
+            validate_framework(self.framework), "cannot affect upstream gates"
+        )
+
+    def test_alignment_exception_can_affect_a_measurement_requirement(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        requirement_id = self.framework["measurement_requirements"][0]["requirement_id"]
+        add_exception(
+            self.framework,
+            exception_id="exception_alignment_evidence",
+            stage="alignment",
+            affected_ids=[requirement_id],
+        )
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_legacy_exception_scope_defect_warns_without_failing(self) -> None:
+        add_exception(
+            self.framework,
+            exception_id="exception_legacy_upstream",
+            stage="kpi",
+            affected_ids=["kpi_quote_completion_rate"],
+            gate_ids=["journey_completeness"],
+        )
+        self.assertEqual(validate_framework(self.framework), [])
+        self.assertTrue(
+            any(
+                "Legacy exception advisory" in item
+                for item in review_advisories(self.framework)
+            )
+        )
+
+    def test_material_state_decisions_are_complete_and_traceable(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        journey = self.framework["journeys"][0]
+        journey["state_decisions"] = [
+            item for item in journey["state_decisions"] if item["state"] != "reentry"
+        ]
+        self.assert_has_error(
+            validate_framework(self.framework), "missing explicit 'reentry' decision"
+        )
+
+    def test_validation_report_is_reproducible_and_evidence_aware(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        errors = validate_framework(self.framework)
+        first = build_validation_report(
+            self.framework, errors, artifact_sha256="a" * 64
+        )
+        second = build_validation_report(
+            self.framework, errors, artifact_sha256="a" * 64
+        )
+        self.assertEqual(first, second)
+        self.assertEqual(first["validator_version"], "1.3.0")
+        self.assertEqual(
+            first["counts"]["evidence_maturity"]["journeys"]["observed"], 1
+        )
+        self.assertIn("journey_completeness", first["gate_facts"])
+        self.assertIn(
+            "evidence eligibility issues=0",
+            first["gate_facts"]["journey_completeness"],
+        )
+
+    def test_candidate_census_exposes_target_and_state_coverage(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        census = candidate_census(self.framework)
+        self.assertEqual(census["material_candidate_total"], 1)
+        self.assertEqual(census["unresolved_material_candidate_ids"], [])
+        self.assertTrue(census["intake_baseline_present"])
+        self.assertEqual(census["included_targets_without_representative_sources"], [])
+        self.assertEqual(census["state_decision_resolutions"]["covered"], 1)
 
     def test_v1_schema_version_remains_compatible(self) -> None:
         downgrade_formula_contract(self.framework, schema_version="1.0.0")
@@ -384,13 +788,60 @@ class MeasurementFrameworkValidationTests(unittest.TestCase):
         duplicate = add_duplicate_kpi(self.framework)
         self.assertEqual(validate_framework(self.framework), [])
         advisories = review_advisories(self.framework)
-        self.assertEqual(len(advisories), 1)
-        self.assertIn(duplicate["kpi_id"], advisories[0])
+        duplicate_advisories = [
+            item for item in advisories if "Possible duplicate KPIs" in item
+        ]
+        self.assertEqual(len(duplicate_advisories), 1)
+        self.assertEqual(advisories, duplicate_advisories)
+        self.assertIn(duplicate["kpi_id"], duplicate_advisories[0])
 
     def test_distinct_population_is_not_flagged_as_duplicate(self) -> None:
         duplicate = add_duplicate_kpi(self.framework)
         duplicate["formula"]["population"] = "Returning quote journeys only"
         self.assertEqual(review_advisories(self.framework), [])
+
+    def test_core_selection_advisory_is_semantic_not_quota_based(self) -> None:
+        self.assertFalse(
+            any(
+                "Every accepted KPI" in item
+                for item in review_advisories(self.framework)
+            )
+        )
+        self.framework["kpis"][0]["tier"] = "diagnostic"
+        self.assertTrue(
+            any(
+                "including at least one diagnostic KPI" in item
+                for item in review_advisories(self.framework)
+            )
+        )
+
+    def test_uniformity_advisories_surface_conservative_template_signals(self) -> None:
+        duplicate = copy.deepcopy(self.framework["objectives"][0])
+        duplicate["objective_id"] = "objective_second_primary"
+        self.framework["objectives"].append(duplicate)
+        for kpi in self.framework["kpis"]:
+            kpi["formula"]["grain"] = "one record per reporting entity"
+            kpi["formula"]["reporting_window"] = "calendar month"
+        advisories = review_advisories(self.framework)
+        self.assertTrue(any("are primary" in item for item in advisories))
+        self.assertTrue(any("identical grain" in item for item in advisories))
+
+    def test_anti_circular_whole_site_closure_is_advisory_only(self) -> None:
+        self.framework["document"]["scope_claim"] = "whole_site"
+        source = next(
+            item
+            for item in self.framework["sources"]
+            if item["source_id"] == "source_site"
+        )
+        source["source_type"] = "technical_specification"
+        source["evidence_role"] = "data_capability"
+        advisories = review_advisories(self.framework)
+        self.assertTrue(
+            any(
+                "candidate universe closes without rendered discovery" in item
+                for item in advisories
+            )
+        )
 
     def test_appropriateness_exception_can_target_appropriateness_gate(self) -> None:
         add_exception(

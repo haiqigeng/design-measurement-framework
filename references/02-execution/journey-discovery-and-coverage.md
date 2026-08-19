@@ -6,6 +6,7 @@
 - [Build the top-down candidate map](#build-the-top-down-candidate-map)
 - [Build the bottom-up candidate universe](#build-the-bottom-up-candidate-universe)
 - [Explore proportionately](#explore-proportionately)
+- [Cover gated and multi-environment journeys](#cover-gated-and-multi-environment-journeys)
 - [Exercise material states](#exercise-material-states)
 - [Separate evidence from resolution](#separate-evidence-from-resolution)
 - [Closure conditions](#closure-conditions)
@@ -76,6 +77,40 @@ boundaries, and risk combinations; record the strategy and residual limitation.
 Treat a page cap as a round budget, never as proof of closure. Run targeted
 rounds for unvisited material families and material `unknown` candidates.
 
+Use `python scripts/candidate_census.py measurement-framework.json` as a
+read-only omission check after building or revising the inventory. It reports
+what the framework contains; it does not browse, infer materiality, or replace
+analyst judgment.
+
+## Cover Gated And Multi-Environment Journeys
+
+Preserve production URLs as scope even when authenticated journeys can only be
+executed safely in UAT or staging. Link each production target to one or more
+representative evidence sources in the intake baseline. Several language or
+role-specific production targets may legitimately share one test origin; keep
+their locales, audiences, and applicability distinct where meaning differs.
+
+Record only categorical authorization and constraints. Never copy account IDs,
+passwords, tokens, or personal test values into the framework. Exercise every
+authorized material role, locale, journey family, and materially different
+state that can be reached safely. When a shared test origin uses a language
+switch, preserve evidence for the language actually inspected rather than
+assuming that one locale proves every other locale.
+
+For an inaccessible path, distinguish:
+
+- `not_tested`: no direct attempt was completed;
+- `externally_blocked`: a direct live/test attempt encountered an evidenced
+  access, authentication, CAPTCHA, technical, or consequential boundary; and
+- `confirmed`: credible user, technical, lifecycle, or business-system
+  evidence establishes a capability or outcome without direct execution.
+
+An externally blocked material journey, step, or variant requires an exact
+journey exception. The evidence must identify the attempted entity with a
+stable URL or locator and an observation time. A technical route inventory may
+confirm that a path or backend outcome exists; it cannot prove that execution
+was observed.
+
 ## Exercise Material States
 
 When safe, inspect:
@@ -90,8 +125,12 @@ When safe, inspect:
 - post-conversion self-service or lifecycle state.
 
 Do not require a state that is genuinely not applicable. Record the
-not-applicable decision and reason. Never use one successful variant to close a
-different funnel shape or implementation.
+not-applicable decision and reason. For every material journey, record one
+explicit decision for failure, empty, recovery, re-entry, and post-conversion:
+`covered`, `merged`, `not_applicable`, or `unresolved`. Link covered and merged
+decisions to their supporting steps; link unresolved decisions to a journey
+exception. Never use one successful variant to close a different funnel shape
+or implementation.
 
 Every material goal-directed journey needs a declared entry point, an explicit
 entry-state step, and an explicit success-state step. A success step may be
@@ -104,7 +143,8 @@ inventing a step or calling the journey closed.
 
 Use factual journey states:
 
-- `observed`: directly rendered or executed;
+- `observed`: directly rendered or executed, supported by timestamped
+  live/test behavior evidence and a stable locator;
 - `confirmed`: established by a credible non-live source;
 - `planned`: present only in future-state evidence;
 - `partial`: only part of the journey or variant is evidenced;
@@ -134,7 +174,7 @@ Close journey coverage only when:
    success steps, and every confirmed conversion endpoint maps back to an entry
    and progression path;
 5. every material journey records applicable success, failure, empty, re-entry,
-   and post-conversion decisions;
+   recovery, and post-conversion decisions;
 6. every material variant has its own evidence state;
 7. every included journey states its outcome and evidence;
 8. every residual gap names the affected journey and downstream impact.

@@ -90,19 +90,24 @@ metric, event, or time cap for closure.
 
 Declare the framework ready only when:
 
-1. every mandatory gate is `pass` or `pass_with_exceptions`;
-2. every exception is explicit, bounded, linked to affected IDs, and cited by
+1. the resolved delivery scope matches the non-secret intake baseline, and
+   every transformation or unresolved target is evidenced or bounded;
+2. every mandatory gate is `pass` or `pass_with_exceptions`;
+3. every exception is explicit, bounded, linked to affected IDs, and cited by
    the correct quality gate;
-3. every material included journey and variant is resolved and every material
+4. every material included journey and variant is resolved and every material
    journey maps to at least one active objective;
-4. every objective and journey has the required KPI-role considerations;
-5. every active objective has an appropriate outcome KPI or a named exception;
-6. every accepted KPI is precise, actionable, coherent, and traceable;
-7. every KPI formula component and required dimension maps to a semantic
+5. every material journey explicitly resolves failure, empty, recovery,
+   re-entry, and post-conversion states without pretending they were observed;
+6. every observed or externally blocked claim has eligible, durable evidence;
+7. every objective and journey has the required KPI-role considerations;
+8. every active objective has an appropriate outcome KPI or a named exception;
+9. every accepted KPI is precise, actionable, coherent, and traceable;
+10. every KPI formula component and required dimension maps to a semantic
    measurement requirement;
-8. every current-measurement requirement is classified when relevant evidence
+11. every current-measurement requirement is classified when relevant evidence
    was supplied;
-9. no platform-specific implementation decision is presented as approved;
-10. a stakeholder can understand the Markdown and a machine consumer can use
+12. no platform-specific implementation decision is presented as approved;
+13. a stakeholder can understand the Markdown and a machine consumer can use
     the canonical JSON without guessing; and
-11. the Markdown is demonstrably rendered from and consistent with the JSON.
+14. the Markdown is demonstrably rendered from and consistent with the JSON.

@@ -2,6 +2,7 @@
 
 ## Contents
 
+- [Scope fidelity](#scope-fidelity)
 - [Journey completeness](#journey-completeness)
 - [Journey appropriateness](#journey-appropriateness)
 - [Objective completeness](#objective-completeness)
@@ -16,6 +17,23 @@ with exceptions only when each exception is explicit, bounded, and linked to
 affected IDs. Never use an exception to hide an unperformed but feasible core
 analysis step.
 
+## Scope Fidelity
+
+Before judging analytical layers, require:
+
+- every requested non-secret target has an intake disposition;
+- included and canonicalized resolved production targets exactly match
+  `document.target_sites`;
+- canonicalization or exclusion is supported by user evidence;
+- every assumed or unresolved target has an exact scope exception;
+- products, markets, audiences, locales, target state, and scope claim agree
+  between the intake baseline and resolved document; and
+- representative test or staging sources remain evidence bindings rather than
+  silent production-scope substitutions.
+
+Fail delivery on an unapproved scope substitution. Do not fail merely because
+several production targets share one representative test source.
+
 ## Journey Completeness
 
 Require all of the following:
@@ -27,8 +45,12 @@ Require all of the following:
 - give every material journey a declared entry point plus explicit entry and
   success steps, allowing non-UI outcome evidence or a bounded exception;
 - represent material variants separately when their paths or measurement needs differ;
-- record decisions for success, failure, empty, re-entry, and post-conversion states;
+- record explicit covered, merged, not-applicable, or unresolved decisions for
+  failure, empty, recovery, re-entry, and post-conversion states on every
+  material journey;
 - link every partial, not-tested, or externally blocked material state to an exception;
+- require timestamped direct live/test evidence with a stable locator for
+  every `observed` claim and every claimed external boundary;
 - state the downstream impact of every residual gap.
 
 Fail when a material candidate is silently absent or an unresolved candidate has
@@ -89,6 +111,8 @@ Require all of the following:
 - specify every accepted KPI completely;
 - map every formula component to at least one measurement requirement;
 - make every segmentation decision explicit;
+- require each proposed or covering KPI consideration to link back from the
+  referenced KPI to the consideration's objective or journey;
 - identify a recommended core for the framework without mechanically forcing
   one core KPI per objective;
 - bind every unresolved material consideration to an exception.
@@ -113,7 +137,10 @@ Require every accepted KPI to:
   scope without hiding essential counter-outcomes;
 - give multiple North Stars explicit, non-overlapping applicability and rationale;
 - avoid invented targets and unsupported benchmarks;
-- state evidence and assumption status.
+- state evidence and assumption status;
+- keep claimed KPI applicability within linked journey or objective scope, or
+  provide an evidence-backed `applicability_basis` for an intentionally broader
+  business definition.
 
 Fail when two analysts could reasonably calculate different values from the
 same written definition.
@@ -133,7 +160,9 @@ Require all of the following:
 - use current evidence for every alignment assertion and never let a historical
   framework alone prove present coverage;
 - give every unlinked current measurement an explicit disposition;
-- prohibit sensitive fields and flag potential personal-data fields for review.
+- prohibit sensitive fields and flag potential personal-data fields for review;
+- keep dimension and requirement applicability within the linked KPI or
+  journey scope, or provide an evidence-backed basis for intentional breadth.
 
 Fail when a KPI cannot be calculated from the declared requirements or when a
 material dependency is silent.
@@ -149,3 +178,8 @@ Set `overall` to:
 
 Do not deliver a failed framework as complete. A draft may still be useful, but
 state the exact failed gates and required next evidence.
+
+Treat computed gate facts as a check on the analyst-authored rationale, not a
+replacement for it. Render candidate, maturity, reciprocity, applicability,
+scope-diff, and exception counts beside the gate. Resolve any contradiction
+before delivery; never parse persuasive prose as proof.

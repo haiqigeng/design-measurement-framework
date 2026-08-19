@@ -9,6 +9,7 @@ from helpers import (
     add_exception,
     add_second_north_star,
     load_framework,
+    upgrade_to_v1_3,
 )
 
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -68,13 +69,33 @@ class MeasurementFrameworkRendererTests(unittest.TestCase):
         rendered = render_framework(self.framework)
         self.assertIn("### Objective evidence and rationale", rendered)
         self.assertIn(
-            "| Objective | Confidence | Owner | Rationale | Evidence |", rendered
+            "| Objective | Confidence | Owner | Rationale | Evidence | Evidence roles |",
+            rendered,
         )
         self.assertIn("Sales and marketing", rendered)
         self.assertIn("source_business#qualified-demand", rendered)
         self.assertIn("Entry point(s)", rendered)
         self.assertIn("/quote", rendered)
         self.assertIn("source_business#accepted-request", rendered)
+        self.assertIn("live_behavior", rendered)
+
+    def test_v1_3_scope_maturity_and_state_decisions_are_visible(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        rendered = render_framework(self.framework)
+        self.assertIn("## Scope provenance", rendered)
+        self.assertIn("Request evidence", rendered)
+        self.assertIn("Resolution evidence", rendered)
+        self.assertIn("Resolved production scope", rendered)
+        self.assertIn("source_site", rendered)
+        self.assertIn("Journey evidence maturity: observed=1", rendered)
+        self.assertIn("Variant evidence maturity: observed=1", rendered)
+        self.assertIn("Objective evidence maturity: hypothesis=1", rendered)
+        self.assertIn("## Evidence sources", rendered)
+        self.assertIn("2026-08-17T09:30:00+02:00", rendered)
+        self.assertIn("### Material state decisions", rendered)
+        self.assertIn("post_conversion", rendered)
+        self.assertIn("Evidence roles", rendered)
+        self.assertIn("Computed evidence", rendered)
 
     def test_coverage_summaries_expose_type_and_lens_resolutions(self) -> None:
         rendered = render_framework(self.framework)

@@ -1,10 +1,8 @@
-"""Versioned KPI formula validation and non-blocking review advisories."""
+"""Versioned KPI formula validation."""
 
 from __future__ import annotations
 
 import ast
-import json
-import re
 from typing import Any
 
 V1_2_SCHEMA_VERSION = (1, 2, 0)
@@ -219,102 +217,3 @@ def validate_structured_formula(kpi: dict[str, Any], kpi_index: int) -> list[str
     if calculation_type == "percentile" and "percentile" not in functions:
         errors.append(f"{path}.calculation_type: 'percentile' requires percentile(...)")
     return errors
-
-
-def _normalized_text(value: Any) -> str:
-    return " ".join(str(value or "").lower().split())
-
-
-def _duplicate_fingerprint(kpi: dict[str, Any]) -> str:
-    formula = kpi.get("formula", {})
-    if not isinstance(formula, dict):
-        formula = {}
-    components = formula.get("components", [])
-    component_records = (
-        [component for component in components if isinstance(component, dict)]
-        if isinstance(components, list)
-        else []
-    )
-    component_signatures = []
-    for component in component_records:
-        signature = {
-            "role": component.get("role"),
-            "requirement_ids": sorted(component.get("requirement_ids", [])),
-            "counting_unit": _normalized_text(component.get("counting_unit")),
-            "grain": _normalized_text(component.get("grain")),
-        }
-        component_signatures.append((component, signature))
-    component_signatures.sort(
-        key=lambda item: (
-            json.dumps(item[1], sort_keys=True),
-            str(item[0].get("symbol", "")),
-        )
-    )
-
-    canonical_expression = _normalized_text(formula.get("expression"))
-    for index, (component, _) in enumerate(component_signatures):
-        symbol = component.get("symbol")
-        if isinstance(symbol, str) and symbol:
-            canonical_expression = re.sub(
-                rf"\b{re.escape(symbol.lower())}\b",
-                f"component_{index}",
-                canonical_expression,
-            )
-
-    signature = {
-        "role": kpi.get("role"),
-        "expression": canonical_expression,
-        "calculation_type": formula.get("calculation_type"),
-        "result_unit": _normalized_text(formula.get("result_unit")),
-        "counting_unit": _normalized_text(formula.get("counting_unit")),
-        "grain": _normalized_text(formula.get("grain")),
-        "population": _normalized_text(formula.get("population")),
-        "reporting_window": _normalized_text(formula.get("reporting_window")),
-        "inclusions": sorted(
-            _normalized_text(value) for value in formula.get("inclusions", [])
-        ),
-        "exclusions": sorted(
-            _normalized_text(value) for value in formula.get("exclusions", [])
-        ),
-        "components": [value for _, value in component_signatures],
-        "objective_ids": sorted(kpi.get("objective_ids", [])),
-        "journey_ids": sorted(kpi.get("journey_ids", [])),
-        "dimension_ids": sorted(
-            kpi.get("segmentation", {}).get("dimension_ids", [])
-            if isinstance(kpi.get("segmentation"), dict)
-            else []
-        ),
-        "applicability": kpi.get("applicability", {}),
-    }
-    return json.dumps(signature, sort_keys=True, separators=(",", ":"))
-
-
-def review_advisories(data: dict[str, Any]) -> list[str]:
-    """Return non-blocking human-review advisories for a valid framework."""
-
-    if not isinstance(data, dict) or not uses_v1_2_contract(data):
-        return []
-    kpis = data.get("kpis", [])
-    if not isinstance(kpis, list):
-        return []
-    fingerprints: dict[str, list[str]] = {}
-    for kpi in kpis:
-        if not isinstance(kpi, dict):
-            continue
-        kpi_id = kpi.get("kpi_id")
-        if not isinstance(kpi_id, str) or not kpi_id:
-            continue
-        fingerprints.setdefault(_duplicate_fingerprint(kpi), []).append(kpi_id)
-
-    advisories = []
-    for kpi_ids in fingerprints.values():
-        if len(kpi_ids) < 2:
-            continue
-        advisories.append(
-            "Possible duplicate KPIs "
-            + ", ".join(repr(kpi_id) for kpi_id in sorted(kpi_ids))
-            + " share the same calculation, population, scope, dimensions, and "
-            "measurement requirements; retain both only when their distinct "
-            "decision use is evidenced."
-        )
-    return sorted(advisories)

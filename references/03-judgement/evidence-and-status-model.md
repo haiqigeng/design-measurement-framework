@@ -4,8 +4,10 @@
 
 - [Separate five questions](#separate-five-questions)
 - [Source roles](#source-roles)
+- [Evidence eligibility and durability](#evidence-eligibility-and-durability)
 - [Target state](#target-state)
 - [Journey evidence states](#journey-evidence-states)
+- [Evidence maturity](#evidence-maturity)
 - [Candidate and consideration resolutions](#candidate-and-consideration-resolutions)
 - [Objective and KPI status](#objective-and-kpi-status)
 - [Assumptions](#assumptions)
@@ -38,9 +40,32 @@ Current-measurement alignment may use `current_implementation` and
 source may explain intended or prior semantics but cannot by itself establish
 present coverage.
 
-Reference evidence as `source_id` or `source_id#locator`. Use a URL, page,
-section, sheet/cell, object ID, or other stable locator after `#`. Do not use
-untraceable prose such as “seen on site.”
+Reference evidence as `source_id` or `source_id#locator`. Use a specific source
+URL, page, section, sheet/cell, object ID, state label, or other stable locator.
+Do not use untraceable prose such as “seen on site.”
+
+## Evidence Eligibility And Durability
+
+For schema 1.3, apply these deterministic boundaries:
+
+| Claim | Minimum eligible support |
+| --- | --- |
+| `observed` | `live_website` or `test_website`, role `live_behavior`, current-state source, `observed_at`, and a stable source URL or evidence-ref locator |
+| `externally_blocked` | Direct live/test evidence in the applicable current or future state, with `observed_at` and a stable locator identifying the attempted boundary |
+| `confirmed` | Credible user, business, technical, lifecycle, research, or data-capability evidence whose stated support matches the claim |
+| `planned` | Future design or approved requirement evidence |
+| `not_tested` | An honest absence of direct execution; do not invent attempt evidence |
+
+Technical, API, route, CMS, CRM, billing, or other data-capability evidence may
+confirm that a capability, field, route, or backend outcome exists. It cannot
+be rendered as observed browser execution. User input may confirm a described
+current state but never becomes direct observation merely because it is
+credible.
+
+Place `observed_at` on the source. When materially different retrieval times
+matter, create separate source records. A source URL is sufficient when it is
+the stable location of the claim; otherwise use the existing `#locator`
+convention. Do not create screenshot or DOM bundles by default.
 
 ## Target State
 
@@ -67,6 +92,19 @@ Use:
 
 Do not use `blocked` for a sample limit or unattempted work. Do not call user
 input observed; classify the user as the source and use confirmed when credible.
+
+## Evidence Maturity
+
+Keep structural closure separate from empirical maturity. The renderer and
+validator diagnostics derive status counts for journeys, variants, steps,
+objectives, KPIs, and measurement requirements. These counts answer how much
+is observed, confirmed, planned, partial, untested, blocked, verified, or
+unverified; they are not a new readiness gate and do not replace record-level
+evidence review.
+
+Evidence maturity may be low while a framework is honestly coverage-closed
+with exceptions. Never let a complete candidate inventory make an inferred
+objective look confirmed or an unverified KPI look implemented.
 
 ## Candidate And Consideration Resolutions
 
@@ -108,10 +146,15 @@ must not continue to support an active objective or KPI.
 Use an exception only for a bounded limitation, not to avoid analysis. Record:
 
 - affected stage and IDs;
+- applicability when the limitation is narrower than document scope;
 - exact missing or conflicting evidence;
 - impact on objectives, KPIs, or requirements;
 - disposition: `bounded`, `out_of_scope`, or `awaiting_evidence`;
 - evidence references.
 
 Require `pass_with_exceptions` for every gate materially affected by an open
-exception.
+exception. The exception stage must match at least one affected entity, it may
+affect only its own or downstream gates, and a declared applicability scope
+must overlap each scoped entity it claims to affect. Feasibility and
+materiality remain analyst judgments; free text is not treated as machine
+proof of either.

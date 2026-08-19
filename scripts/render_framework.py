@@ -11,8 +11,9 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from formula_contract import review_advisories
-from validate_framework import DEFAULT_SCHEMA, GATE_ORDER, validate_framework
+from advisories import review_advisories
+from diagnostics import GATE_ORDER, evidence_maturity, gate_facts
+from validate_framework import DEFAULT_SCHEMA, validate_framework
 
 TIER_ORDER = {
     "north_star": 0,
@@ -73,6 +74,7 @@ def _format_applicability(record: dict[str, Any]) -> str:
         "products": "products",
         "markets": "markets",
         "audiences": "audiences",
+        "locales": "locales",
         "states": "states",
         "journey_variant_ids": "variants",
     }
@@ -82,6 +84,22 @@ def _format_applicability(record: dict[str, Any]) -> str:
         if isinstance(values, list) and values:
             parts.append(f"{label}: {', '.join(str(value) for value in values)}")
     return "; ".join(parts) or "All declared scope"
+
+
+def _evidence_roles(
+    evidence_refs: Any, sources: dict[str, dict[str, Any]]
+) -> list[str]:
+    if not isinstance(evidence_refs, list):
+        return []
+    return sorted(
+        {
+            str(sources[prefix].get("evidence_role"))
+            for reference in evidence_refs
+            if isinstance(reference, str)
+            for prefix in [reference.split("#", 1)[0]]
+            if prefix in sources and sources[prefix].get("evidence_role")
+        }
+    )
 
 
 def _ordered_kpis(data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -152,6 +170,7 @@ def _evidence_requests(
 
 def render_framework(data: dict[str, Any]) -> str:
     document = data["document"]
+    sources = {item["source_id"]: item for item in data["sources"]}
     objectives = {item["objective_id"]: item for item in data["objectives"]}
     journeys = {item["journey_id"]: item for item in data["journeys"]}
     dimensions = {item["dimension_id"]: item for item in data["dimensions"]}
@@ -176,6 +195,14 @@ def render_framework(data: dict[str, Any]) -> str:
     gates = data["quality_gates"]
     overall_gate = gates["overall"]
     advisories = review_advisories(data)
+    maturity = evidence_maturity(data)
+    computed_gate_facts = gate_facts(data)
+
+    def compact_counts(values: dict[str, int]) -> str:
+        return (
+            ", ".join(f"{key}={value}" for key, value in sorted(values.items()))
+            or "none"
+        )
 
     lines: list[str] = [
         f"# {document['title']}",
@@ -209,13 +236,83 @@ def render_framework(data: dict[str, Any]) -> str:
             f"- Accepted KPIs: **{len(ordered_kpis)}**; recommended core: **{len(core_kpis)}**",
             f"- Semantic measurement requirements: **{len(data['measurement_requirements'])}**",
             f"- Explicit exceptions: **{len(data['exceptions'])}**",
+            f"- Journey evidence maturity: {compact_counts(maturity['journeys'])}",
+            f"- Variant evidence maturity: {compact_counts(maturity['variants'])}",
+            f"- Step evidence maturity: {compact_counts(maturity['steps'])}",
+            f"- Objective evidence maturity: {compact_counts(maturity['objectives'])}",
+            f"- KPI evidence maturity: {compact_counts(maturity['kpis'])}",
+            "- Requirement evidence maturity: "
+            f"{compact_counts(maturity['measurement_requirements'])}",
             "- Active objective(s): "
             + (_cell([item["statement"] for item in active_objectives]) or "None"),
-            "",
-            "## North Star and recommended core",
-            "",
         ]
     )
+
+    intake = data.get("intake_baseline")
+    if isinstance(intake, dict):
+        lines.extend(["", "## Scope provenance", ""])
+        lines.extend(
+            [
+                f"- Captured: `{intake['captured_at']}`",
+                f"- Requested target state: `{intake['target_state']}`",
+                f"- Requested scope claim: `{intake['scope_claim']}`",
+                f"- Requested scope: {intake['scope_summary']}",
+                f"- Resolved production targets: {_cell(document['target_sites']) or 'None'}",
+                f"- Products: {_cell(intake['products']) or 'None'}",
+                f"- Markets: {_cell(intake['markets']) or 'None'}",
+                f"- Audiences: {_cell(intake['audiences']) or 'None'}",
+                f"- Locales: {_cell(intake['locales']) or 'None'}",
+                f"- Intake evidence: {_cell(intake['source_evidence_refs'])}",
+                "",
+            ]
+        )
+        lines.extend(
+            _table(
+                [
+                    "Target ID",
+                    "Requested target",
+                    "Disposition",
+                    "Resolved production scope",
+                    "Resolution basis",
+                    "Request evidence",
+                    "Resolution evidence",
+                    "Representative evidence sources",
+                    "Exception",
+                ],
+                (
+                    (
+                        target["target_id"],
+                        target["requested_target"],
+                        target["disposition"],
+                        target["resolved_scope_targets"],
+                        target["resolution_basis"],
+                        target["request_evidence_refs"],
+                        target["resolution_evidence_refs"],
+                        target["representative_source_ids"],
+                        target.get("exception_id", ""),
+                    )
+                    for target in intake["targets"]
+                ),
+            )
+        )
+        if intake["authorizations"]:
+            lines.extend(["", "### Safe interaction authorizations", ""])
+            lines.extend(
+                _table(
+                    ["Type", "Target(s)", "Constraints", "Evidence"],
+                    (
+                        (
+                            item["authorization_type"],
+                            item["target_ids"],
+                            item["constraints"],
+                            item["evidence_refs"],
+                        )
+                        for item in intake["authorizations"]
+                    ),
+                )
+            )
+
+    lines.extend(["", "## North Star and recommended core", ""])
     if core_and_north_star:
         lines.extend(
             _table(
@@ -285,7 +382,14 @@ def render_framework(data: dict[str, Any]) -> str:
     lines.extend(["", "### Objective evidence and rationale", ""])
     lines.extend(
         _table(
-            ["Objective", "Confidence", "Owner", "Rationale", "Evidence"],
+            [
+                "Objective",
+                "Confidence",
+                "Owner",
+                "Rationale",
+                "Evidence",
+                "Evidence roles",
+            ],
             (
                 (
                     item["statement"],
@@ -293,6 +397,7 @@ def render_framework(data: dict[str, Any]) -> str:
                     item.get("owner_role", "") or "Not assigned",
                     item["rationale"],
                     item["evidence_refs"],
+                    _evidence_roles(item["evidence_refs"], sources),
                 )
                 for item in data["objectives"]
             ),
@@ -311,6 +416,7 @@ def render_framework(data: dict[str, Any]) -> str:
                 "Entry point(s)",
                 "Variant(s)",
                 "Evidence",
+                "Evidence roles",
                 "Applicability",
             ],
             (
@@ -323,6 +429,7 @@ def render_framework(data: dict[str, Any]) -> str:
                     item["entry_points"],
                     [variant["name"] for variant in item["variants"]],
                     item["evidence_refs"],
+                    _evidence_roles(item["evidence_refs"], sources),
                     _format_applicability(item),
                 )
                 for item in data["journeys"]
@@ -346,6 +453,7 @@ def render_framework(data: dict[str, Any]) -> str:
                     "Status",
                     "States covered",
                     "Evidence",
+                    "Evidence roles",
                 ],
                 (
                     (
@@ -355,6 +463,7 @@ def render_framework(data: dict[str, Any]) -> str:
                         variant["status"],
                         variant["states_covered"],
                         variant["evidence_refs"],
+                        _evidence_roles(variant["evidence_refs"], sources),
                     )
                     for journey_name, variant in variants
                 ),
@@ -370,7 +479,15 @@ def render_framework(data: dict[str, Any]) -> str:
         lines.extend(["", "### Journey steps and evidence states", ""])
         lines.extend(
             _table(
-                ["Journey", "Step", "State", "Status", "Evidence", "Notes"],
+                [
+                    "Journey",
+                    "Step",
+                    "State",
+                    "Status",
+                    "Evidence",
+                    "Evidence roles",
+                    "Notes",
+                ],
                 (
                     (
                         journey_name,
@@ -378,9 +495,45 @@ def render_framework(data: dict[str, Any]) -> str:
                         step["state"],
                         step["status"],
                         step["evidence_refs"],
+                        _evidence_roles(step["evidence_refs"], sources),
                         step.get("notes", ""),
                     )
                     for journey_name, step in steps
+                ),
+            )
+        )
+
+    state_decisions = [
+        (journey["name"], decision)
+        for journey in data["journeys"]
+        for decision in journey.get("state_decisions", [])
+    ]
+    if state_decisions:
+        lines.extend(["", "### Material state decisions", ""])
+        lines.extend(
+            _table(
+                [
+                    "Journey",
+                    "State",
+                    "Resolution",
+                    "Supporting step(s)",
+                    "Reason",
+                    "Evidence",
+                    "Evidence roles",
+                    "Exception",
+                ],
+                (
+                    (
+                        journey_name,
+                        decision["state"],
+                        decision["resolution"],
+                        decision["step_ids"],
+                        decision["reason"],
+                        decision["evidence_refs"],
+                        _evidence_roles(decision["evidence_refs"], sources),
+                        decision.get("exception_id", ""),
+                    )
+                    for journey_name, decision in state_decisions
                 ),
             )
         )
@@ -446,12 +599,13 @@ def render_framework(data: dict[str, Any]) -> str:
     lines.extend(["", "## Quality gate detail", ""])
     lines.extend(
         _table(
-            ["Gate", "Status", "Rationale", "Exceptions"],
+            ["Gate", "Status", "Rationale", "Computed evidence", "Exceptions"],
             (
                 (
                     name,
                     gates[name]["status"],
                     gates[name]["rationale"],
+                    computed_gate_facts.get(name, []),
                     gates[name]["exception_ids"],
                 )
                 for name in [*GATE_ORDER, "overall"]
@@ -473,7 +627,8 @@ def render_framework(data: dict[str, Any]) -> str:
                 "Formula",
                 "Core",
                 "Owner",
-                "Evidence",
+                "Evidence status",
+                "Evidence roles",
                 "Applicability",
             ],
             (
@@ -485,12 +640,40 @@ def render_framework(data: dict[str, Any]) -> str:
                     item["recommended_core"],
                     item["owner_role"],
                     item["evidence_status"],
+                    _evidence_roles(item["evidence_refs"], sources),
                     _format_applicability(item),
                 )
                 for item in ordered_kpis
             ),
         )
     )
+
+    applicability_bases = [
+        (collection_name, record.get(id_key, ""), record["applicability_basis"])
+        for collection_name, id_key, records in (
+            ("objective", "objective_id", data["objectives"]),
+            ("KPI", "kpi_id", data["kpis"]),
+            ("dimension", "dimension_id", data["dimensions"]),
+            (
+                "measurement requirement",
+                "requirement_id",
+                data["measurement_requirements"],
+            ),
+        )
+        for record in records
+        if isinstance(record.get("applicability_basis"), dict)
+    ]
+    if applicability_bases:
+        lines.extend(["", "### Broader applicability bases", ""])
+        lines.extend(
+            _table(
+                ["Entity type", "Entity ID", "Rationale", "Evidence"],
+                (
+                    (kind, entity_id, basis["rationale"], basis["evidence_refs"])
+                    for kind, entity_id, basis in applicability_bases
+                ),
+            )
+        )
 
     lines.extend(["", "## KPI definitions", ""])
     for item in ordered_kpis:
@@ -621,6 +804,37 @@ def render_framework(data: dict[str, Any]) -> str:
             )
         )
 
+    lines.extend(["", "## Evidence sources", ""])
+    lines.extend(
+        _table(
+            [
+                "Source ID",
+                "Type",
+                "Evidence role",
+                "State",
+                "Observed at",
+                "Reference",
+                "Supports",
+                "Conflicts",
+                "SHA-256",
+            ],
+            (
+                (
+                    source["source_id"],
+                    source["source_type"],
+                    source["evidence_role"],
+                    source["state"],
+                    source.get("observed_at", ""),
+                    source["reference"],
+                    source["supports"],
+                    source.get("conflicts", []),
+                    source.get("sha256", ""),
+                )
+                for source in data["sources"]
+            ),
+        )
+    )
+
     resolution_counts = Counter(
         item["resolution"] for item in data["discovery_candidates"]
     )
@@ -671,7 +885,16 @@ def render_framework(data: dict[str, Any]) -> str:
     lines.extend(["", "### Discovery candidate ledger", ""])
     lines.extend(
         _table(
-            ["Candidate", "Type", "Material", "Resolution", "Journey(s)", "Reason"],
+            [
+                "Candidate",
+                "Type",
+                "Material",
+                "Resolution",
+                "Journey(s)",
+                "Reason",
+                "Evidence",
+                "Evidence roles",
+            ],
             (
                 (
                     item["label"],
@@ -680,6 +903,8 @@ def render_framework(data: dict[str, Any]) -> str:
                     item["resolution"],
                     item["journey_ids"],
                     item["reason"],
+                    item["evidence_refs"],
+                    _evidence_roles(item["evidence_refs"], sources),
                 )
                 for item in data["discovery_candidates"]
             ),
@@ -794,6 +1019,7 @@ def render_framework(data: dict[str, Any]) -> str:
                     "Affected gate(s)",
                     "Disposition",
                     "Affected IDs",
+                    "Applicability",
                     "Impact",
                 ],
                 (
@@ -808,6 +1034,7 @@ def render_framework(data: dict[str, Any]) -> str:
                         ],
                         item["disposition"],
                         item["affected_ids"],
+                        _format_applicability(item),
                         item["impact"],
                     )
                     for item in data["exceptions"]

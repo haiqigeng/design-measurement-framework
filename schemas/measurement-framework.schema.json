@@ -22,8 +22,9 @@
     "quality_gates"
   ],
   "properties": {
-    "schema_version": {"enum": ["1.0.0", "1.1.0", "1.2.0"]},
+    "schema_version": {"enum": ["1.0.0", "1.1.0", "1.2.0", "1.3.0"]},
     "document": {"$ref": "#/$defs/document"},
+    "intake_baseline": {"$ref": "#/$defs/intakeBaseline"},
     "sources": {
       "type": "array",
       "minItems": 1,
@@ -89,7 +90,7 @@
   "allOf": [
     {
       "if": {
-        "properties": {"schema_version": {"const": "1.2.0"}},
+        "properties": {"schema_version": {"enum": ["1.2.0", "1.3.0"]}},
         "required": ["schema_version"]
       },
       "then": {
@@ -112,6 +113,28 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {"schema_version": {"const": "1.3.0"}},
+        "required": ["schema_version"]
+      },
+      "then": {
+        "required": ["intake_baseline"],
+        "properties": {
+          "journeys": {
+            "items": {
+              "if": {
+                "properties": {"material": {"const": true}},
+                "required": ["material"]
+              },
+              "then": {
+                "required": ["state_decisions"]
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -126,6 +149,159 @@
     "nonEmptyString": {
       "type": "string",
       "minLength": 1
+    },
+    "locale": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"
+    },
+    "intakeTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_id",
+        "requested_target",
+        "disposition",
+        "resolved_scope_targets",
+        "resolution_basis",
+        "request_evidence_refs",
+        "resolution_evidence_refs",
+        "representative_source_ids"
+      ],
+      "properties": {
+        "target_id": {"$ref": "#/$defs/id"},
+        "requested_target": {"$ref": "#/$defs/nonEmptyString"},
+        "disposition": {
+          "enum": ["included", "canonicalized", "excluded_with_approval", "unresolved"]
+        },
+        "resolved_scope_targets": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "uri"}
+        },
+        "resolution_basis": {
+          "enum": ["explicit_in_request", "user_confirmed", "assumed"]
+        },
+        "request_evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "resolution_evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "representative_source_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "exception_id": {"$ref": "#/$defs/id"},
+        "notes": {"type": "string"}
+      }
+    },
+    "intakeAuthorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authorization_id",
+        "authorization_type",
+        "target_ids",
+        "constraints",
+        "evidence_refs"
+      ],
+      "properties": {
+        "authorization_id": {"$ref": "#/$defs/id"},
+        "authorization_type": {
+          "enum": ["authenticated_testing", "safe_nonproduction_interaction", "other"]
+        },
+        "target_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "constraints": {"$ref": "#/$defs/nonEmptyString"},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        }
+      }
+    },
+    "intakeBaseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "captured_at",
+        "source_evidence_refs",
+        "target_state",
+        "scope_claim",
+        "scope_summary",
+        "targets",
+        "products",
+        "markets",
+        "audiences",
+        "locales",
+        "authorizations"
+      ],
+      "properties": {
+        "captured_at": {"type": "string", "format": "date-time"},
+        "source_evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "target_state": {"enum": ["as_is", "to_be", "hybrid"]},
+        "scope_claim": {"enum": ["whole_site", "journey_subset"]},
+        "scope_summary": {"$ref": "#/$defs/nonEmptyString"},
+        "targets": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/intakeTarget"}
+        },
+        "products": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "markets": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "audiences": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "locales": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/locale"}
+        },
+        "authorizations": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/intakeAuthorization"}
+        }
+      }
+    },
+    "applicabilityBasis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rationale", "evidence_refs"],
+      "properties": {
+        "rationale": {"$ref": "#/$defs/nonEmptyString"},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        }
+      }
     },
     "applicability": {
       "type": "object",
@@ -155,6 +331,12 @@
           "minItems": 1,
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "locales": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/locale"}
         },
         "states": {
           "type": "array",
@@ -213,6 +395,11 @@
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/nonEmptyString"}
         },
+        "locales": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/locale"}
+        },
         "notes": {"type": "string"}
       }
     },
@@ -244,6 +431,7 @@
           ]
         },
         "reference": {"$ref": "#/$defs/nonEmptyString"},
+        "observed_at": {"type": "string", "format": "date-time"},
         "sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
         "evidence_role": {
           "enum": [
@@ -329,6 +517,7 @@
             "success",
             "failure",
             "empty",
+            "recovery",
             "reentry",
             "post_conversion"
           ]
@@ -366,6 +555,7 @@
               "success",
               "failure",
               "empty",
+              "recovery",
               "reentry",
               "post_conversion"
             ]
@@ -378,6 +568,32 @@
           "items": {"$ref": "#/$defs/evidenceRef"}
         },
         "notes": {"type": "string"}
+      }
+    },
+    "stateDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "resolution", "step_ids", "reason", "evidence_refs"],
+      "properties": {
+        "state": {
+          "enum": ["failure", "empty", "recovery", "reentry", "post_conversion"]
+        },
+        "resolution": {
+          "enum": ["covered", "merged", "not_applicable", "unresolved"]
+        },
+        "step_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "reason": {"$ref": "#/$defs/nonEmptyString"},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "exception_id": {"$ref": "#/$defs/id"}
       }
     },
     "journey": {
@@ -436,6 +652,10 @@
         "variants": {
           "type": "array",
           "items": {"$ref": "#/$defs/journeyVariant"}
+        },
+        "state_decisions": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/stateDecision"}
         },
         "evidence_refs": {
           "type": "array",
@@ -519,6 +739,7 @@
         "confidence": {"enum": ["high", "medium", "low"]},
         "owner_role": {"type": "string"},
         "applicability": {"$ref": "#/$defs/applicability"},
+        "applicability_basis": {"$ref": "#/$defs/applicabilityBasis"},
         "notes": {"type": "string"}
       }
     },
@@ -697,6 +918,7 @@
           "items": {"$ref": "#/$defs/evidenceRef"}
         },
         "applicability": {"$ref": "#/$defs/applicability"},
+        "applicability_basis": {"$ref": "#/$defs/applicabilityBasis"},
         "north_star_rationale": {"$ref": "#/$defs/nonEmptyString"},
         "assumption_ids": {
           "type": "array",
@@ -742,7 +964,8 @@
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/evidenceRef"}
         },
-        "applicability": {"$ref": "#/$defs/applicability"}
+        "applicability": {"$ref": "#/$defs/applicability"},
+        "applicability_basis": {"$ref": "#/$defs/applicabilityBasis"}
       }
     },
     "downstreamMappingHint": {
@@ -817,6 +1040,7 @@
           "items": {"$ref": "#/$defs/evidenceRef"}
         },
         "applicability": {"$ref": "#/$defs/applicability"},
+        "applicability_basis": {"$ref": "#/$defs/applicabilityBasis"},
         "downstream_mapping_hint": {"$ref": "#/$defs/downstreamMappingHint"},
         "notes": {"type": "string"}
       }
@@ -885,7 +1109,7 @@
       "required": ["exception_id", "stage", "description", "affected_ids", "impact", "disposition", "evidence_refs"],
       "properties": {
         "exception_id": {"$ref": "#/$defs/id"},
-        "stage": {"enum": ["journey", "objective", "kpi", "measurement_requirement", "alignment"]},
+        "stage": {"enum": ["scope", "journey", "objective", "kpi", "measurement_requirement", "alignment"]},
         "description": {"$ref": "#/$defs/nonEmptyString"},
         "affected_ids": {
           "type": "array",
@@ -911,6 +1135,7 @@
             ]
           }
         },
+        "applicability": {"$ref": "#/$defs/applicability"},
         "evidence_refs": {
           "type": "array",
           "minItems": 1,

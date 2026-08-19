@@ -60,6 +60,12 @@ Do not automatically convert a dimension into an analytics parameter. Preserve
 native platform context, business-system fields, lookup dimensions, and derived
 cohorts in their correct roles.
 
+A dimension inherits support from its linked KPIs. A measurement requirement
+inherits support from linked journeys when present, otherwise from linked KPIs.
+If either intentionally applies more broadly, record an evidence-backed
+`applicability_basis`; do not silently broaden it or duplicate the requirement
+only to satisfy a scope check.
+
 Mark potential personal or sensitive data as `review_required`. Mark a field as
 `prohibited` when the available evidence establishes that it must not be
 recommended. Never place raw personal or sensitive examples in the framework.
