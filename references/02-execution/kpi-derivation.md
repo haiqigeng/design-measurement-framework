@@ -6,6 +6,7 @@
 - [Build outcome and driver trees](#build-outcome-and-driver-trees)
 - [Specify the formula precisely](#specify-the-formula-precisely)
 - [Validate grain and identities](#validate-grain-and-identities)
+- [Validate populations and aggregation](#validate-populations-and-aggregation)
 - [Resolve segmentation](#resolve-segmentation)
 - [Prevent metric bloat](#prevent-metric-bloat)
 
@@ -121,6 +122,33 @@ Prefer explicit components such as:
 State whether a rate is event-, session-, user-, account-, lead-, order-, item-,
 or time-based. State the cohort and time relationship for retention, churn,
 renewal, and lifetime metrics.
+
+## Validate Populations And Aggregation
+
+For every rate or ratio, require numerator and denominator components to count
+the same semantic entity at a compatible grain unless an explicit, valid unit
+conversion is part of the formula. Confirm that the numerator population is a
+conceptual subset of the denominator population under the same eligibility,
+deduplication, and time rules. Exact unit and obvious grain mismatches can be
+diagnosed mechanically; subset logic remains a human analytical judgment.
+
+For a KPI that combines multiple journeys, establish at least one of the
+following:
+
+- one genuinely comparable counting unit and population across the journeys;
+- a required dimension that keeps materially different journey types
+  interpretable; or
+- separate KPIs when aggregation would hide unlike value or failure modes.
+
+Do not sum or average tasks merely because they share a screen, role, or broad
+label such as completion. If the mix of journey types can change the KPI
+without underlying performance changing, state how the mix is controlled or
+segmented.
+
+A North Star spanning multiple roles, value streams, or materially different
+task types needs a rationale for comparability, aggregation, and mix-shift
+risk. When that rationale is not defensible, use a balanced core KPI set and no
+North Star. Do not force one for presentation simplicity.
 
 ## Resolve Segmentation
 

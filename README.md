@@ -40,6 +40,13 @@ only for what it can prove. Missing evidence becomes an explicit assumption,
 evidence request, or bounded gap; credentials, payment details, and personal
 information are not needed in the artifacts.
 
+Direct exploration is not the only discovery route. When authentication or
+safe interaction limits observation, available technical, lifecycle,
+business-system, design, historical, and credible user evidence can preserve
+material journey candidates for explicit resolution and support mapped
+journeys as confirmed or planned. Only eligible direct evidence can make
+execution `observed` or an attempted boundary `externally_blocked`.
+
 Schema 1.3 preserves a structured intake baseline before investigation: each
 requested non-secret target is included, canonicalized, explicitly excluded,
 or left unresolved. Production scope remains the delivery scope even when one
@@ -60,19 +67,23 @@ Markdown again. Authorized machine consumers can use the JSON directly; this
 skill does not invoke or adapt itself to another skill or workflow.
 
 The Markdown exposes scope provenance, evidence roles and maturity, explicit
-material-state decisions, computed gate facts, and bounded exceptions. The
-same facts are available in the validator's machine-readable diagnostic
-output; this does not create a third delivery artifact.
+material-state decisions, discovery/evidence coverage, computed gate facts,
+KPI coherence advisories, and bounded exceptions. The same facts are available
+in the validator's machine-readable diagnostic output; this does not create a
+third delivery artifact.
 
 ## Workflow
 
 1. Capture the non-secret intake baseline, then resolve scope, target state,
    evidence roles, and safe boundaries.
 2. Build and close the material journey model, including relevant states and
-   variants.
+   variants. If direct exploration is limited, continue with available
+   alternative evidence until every material expected or source-derived
+   candidate is resolved.
 3. Identify and assess objective candidates.
 4. Derive and validate the KPI system, including the North Star, recommended
-   core, outcomes, drivers, guardrails, and useful diagnostics.
+   core, outcomes, drivers, guardrails, useful diagnostics, rate population
+   coherence, and cross-journey aggregation logic.
 5. Decompose KPIs into semantic measurement requirements: facts, dimensions,
    sources, and derivations needed to calculate and interpret them.
 6. Assess current measurement when relevant evidence exists.
@@ -88,6 +99,10 @@ behavior with a stable locator. `externally_blocked` means a direct attempt
 encountered a recorded boundary. Technical or business-system evidence may
 still confirm a capability or backend outcome; it is never relabeled as
 observed execution.
+
+Production scope is never replaced by UAT. Bind each representative test
+source to the production targets it supports and record an assumption or
+bounded exception when environment or locale equivalence is not established.
 
 ## Acceptance rules
 
@@ -106,7 +121,13 @@ A delivery is ready only when:
 - current-measurement alignment, when supplied, covers every requirement with
   a semantic status;
 - observed and externally blocked claims meet their evidence-eligibility and
-  provenance rules; and
+  provenance rules;
+- a direct access boundary did not erase candidates supported by credible
+  alternative evidence;
+- rate numerator and denominator units, grains, eligible populations, and
+  subset logic are coherent;
+- cross-journey KPIs and any broad North Star have defensible aggregation and
+  mix-shift logic; and
 - the JSON validates and the Markdown is freshly rendered from that JSON.
 
 `pass_with_exceptions` is usable but not fully verified. A structurally valid
@@ -160,7 +181,19 @@ python scripts/render_framework.py measurement-framework.json --output measureme
 
 Add `--json` to validation for a reproducible diagnostic block containing the
 artifact SHA-256, schema and validator versions, evidence maturity, candidate
-census, computed gate facts, errors, and advisories.
+census, discovery/evidence coverage, KPI coherence checks, computed gate facts,
+errors, and advisories.
+
+For release-level analytical regression testing, run a fixed benchmark and
+optionally compare the same task against a prior release artifact:
+
+```powershell
+python scripts/evaluate_release.py measurement-framework.json --benchmark evals/benchmarks/gated-multilingual-service/expectations.json --baseline prior-release-measurement-framework.json
+```
+
+The benchmark catches material concept loss even when both files are schema
+valid. Complete the human scorecard in [`evals/`](evals/) for objective and KPI
+appropriateness, Markdown readability, and independent-agent JSON usability.
 
 Run the repository tests with:
 
@@ -175,10 +208,10 @@ for the canonical contract.
 
 ## Compatibility
 
-Release `v1.3.0` is the current release and uses schema `1.3.0`. It adds intake
-scope provenance, evidence eligibility and maturity, relational applicability,
-reverse consideration links, bounded exception scope, explicit material-state
-decisions, computed gate facts, reproducible diagnostics, and a candidate
-census helper. The validator continues to accept `1.0.0`, `1.1.0`, and `1.2.0`
-artifacts under their prior blocking behavior; newly detectable semantic risks
-are warnings for legacy artifacts.
+Release `v1.4.0` remains on canonical schema `1.3.0`; no new authoring ledger is
+required. It adds evidence-limited discovery fallback, linked journey-variant
+inheritance, conservative KPI coherence diagnostics, computed
+discovery/evidence coverage, conditional UAT-to-production and locale review,
+and fixed analytical release benchmarks. The validator continues to accept
+`1.0.0`, `1.1.0`, and `1.2.0` artifacts under their prior blocking behavior;
+newly detectable semantic risks remain non-blocking legacy advisories.

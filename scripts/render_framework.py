@@ -12,7 +12,12 @@ from pathlib import Path
 from typing import Any
 
 from advisories import review_advisories
-from diagnostics import GATE_ORDER, evidence_maturity, gate_facts
+from diagnostics import (
+    GATE_ORDER,
+    discovery_evidence_coverage,
+    evidence_maturity,
+    gate_facts,
+)
 from validate_framework import DEFAULT_SCHEMA, validate_framework
 
 TIER_ORDER = {
@@ -196,6 +201,7 @@ def render_framework(data: dict[str, Any]) -> str:
     overall_gate = gates["overall"]
     advisories = review_advisories(data)
     maturity = evidence_maturity(data)
+    discovery_coverage = discovery_evidence_coverage(data)
     computed_gate_facts = gate_facts(data)
 
     def compact_counts(values: dict[str, int]) -> str:
@@ -864,6 +870,80 @@ def render_framework(data: dict[str, Any]) -> str:
             "",
         ]
     )
+    direct_scope = discovery_coverage["direct_evidence_claimed_scope"]
+    direct_scope_gaps = discovery_coverage[
+        "document_scope_without_attributed_direct_evidence"
+    ]
+    lines.extend(["### Discovery and evidence diagnostics", ""])
+    lines.extend(
+        _table(
+            ["Diagnostic", "Result"],
+            [
+                (
+                    "Included targets represented by a source",
+                    f"{len(discovery_coverage['represented_target_ids'])} / "
+                    f"{discovery_coverage['included_target_count']}",
+                ),
+                (
+                    "Direct evidence claimed scope",
+                    "; ".join(
+                        f"{key}: {len(values)} / "
+                        f"{len(values) + len(direct_scope_gaps.get(key, []))}"
+                        for key, values in direct_scope.items()
+                    ),
+                ),
+                (
+                    "Declared scope without attributable direct evidence",
+                    "; ".join(
+                        f"{key}: {', '.join(values) or 'none'}"
+                        for key, values in direct_scope_gaps.items()
+                    ),
+                ),
+                (
+                    "Discovery sources unused by candidate ledger",
+                    discovery_coverage[
+                        "discovery_source_ids_without_candidate_support"
+                    ]
+                    or ["None"],
+                ),
+                (
+                    "Material candidates supported only by intake",
+                    discovery_coverage[
+                        "material_candidate_ids_supported_only_by_intake"
+                    ]
+                    or ["None"],
+                ),
+                (
+                    "Blocked journeys without alternative source",
+                    discovery_coverage[
+                        "externally_blocked_journey_ids_without_alternative_source"
+                    ]
+                    or ["None"],
+                ),
+                (
+                    "Journeys needing environment-equivalence review",
+                    [
+                        item["journey_id"]
+                        for item in discovery_coverage[
+                            "journeys_needing_cross_environment_basis"
+                        ]
+                    ]
+                    or ["None"],
+                ),
+                (
+                    "Journeys needing locale-evidence review",
+                    [
+                        item["journey_id"]
+                        for item in discovery_coverage[
+                            "journeys_needing_locale_basis"
+                        ]
+                    ]
+                    or ["None"],
+                ),
+            ],
+        )
+    )
+    lines.append("")
     lines.extend(["### Discovery candidate summary", ""])
     lines.extend(
         _table(

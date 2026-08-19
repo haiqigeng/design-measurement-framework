@@ -54,10 +54,14 @@ Before marking a material state blocked:
 2. try the appropriate anonymous/authenticated or market variant when available;
 3. verify that the blocker is not a sampling or automation limitation;
 4. request the narrowest specific unblock;
-5. accept credible user or technical description as confirmed evidence when
-   direct observation remains impossible.
+5. inspect available technical, lifecycle, business-system, design, historical,
+   or credible user evidence for the blocked candidate family; and
+6. use that evidence as `confirmed` or `planned` support when direct
+   observation remains impossible.
 
 Record the attempted route, blocker, requested unblock, fallback evidence, and
-impact. Do not let an unresolved production-safety boundary disappear from the
-framework.
+impact. Direct evidence still controls whether a claim is `observed` or
+`externally_blocked`; fallback evidence preserves candidate and capability
+coverage at its honest maturity. Do not let an unresolved production-safety
+boundary or the supported journey behind it disappear from the framework.
 

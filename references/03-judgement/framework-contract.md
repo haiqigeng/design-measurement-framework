@@ -98,6 +98,14 @@ scope broader than the union of the entities that support it. Add
 `applicability_basis` with rationale and evidence only when the broader
 business definition is intentional; it is not a generic bypass.
 
+Journey-variant scope is inherited through links: an objective derives it from
+linked journeys; a KPI from linked journeys or, when none are linked, its
+objectives; a dimension from linked KPIs; and a requirement from linked
+journeys or KPIs. Omission of `applicability.journey_variant_ids` therefore
+does not mean every variant in an unrelated journey. Declare the field only to
+narrow or intentionally broaden the inherited scope; intentional breadth still
+requires `applicability_basis`.
+
 ## Bidirectional Traceability
 
 Require:
@@ -208,8 +216,9 @@ structural checks; the validator does not pretend to prove feasibility or
 materiality from prose.
 
 Validator `--json` emits an artifact-bound diagnostic view with SHA-256,
-versions, evidence maturity, candidate census, computed gate facts, errors, and
-advisories. It is reproducible review output, not a third canonical artifact.
+versions, evidence maturity, candidate census, discovery/evidence coverage,
+KPI coherence checks, computed gate facts, errors, and advisories. It is
+reproducible review output, not a third canonical artifact.
 
 The validator enforces structural closure. The analyst remains responsible for
 whether the candidate universe, evidence, materiality, formulas, and judgments

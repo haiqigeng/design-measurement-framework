@@ -11,8 +11,10 @@ from diagnostics import (
     _eligible_direct_source,
     _records,
     consideration_reciprocity_issues,
+    discovery_evidence_coverage,
     evidence_eligibility_issues,
     exception_scope_issues,
+    kpi_coherence_diagnostics,
     relational_applicability_issues,
     schema_at_least,
 )
@@ -222,6 +224,123 @@ def _anti_circular_advisories(data: dict[str, Any]) -> list[str]:
     ]
 
 
+def _discovery_evidence_advisories(data: dict[str, Any]) -> list[str]:
+    coverage = discovery_evidence_coverage(data)
+    advisories: list[str] = []
+
+    missing_targets = coverage["included_targets_without_representative_sources"]
+    if missing_targets:
+        advisories.append(
+            "Included production targets lack representative evidence sources: "
+            + ", ".join(repr(value) for value in missing_targets)
+            + ". Bind a relevant source or retain an explicit scope boundary."
+        )
+
+    unused_sources = coverage["discovery_source_ids_without_candidate_support"]
+    if unused_sources:
+        advisories.append(
+            "Discovery-capable sources are not cited by any discovery candidate: "
+            + ", ".join(repr(value) for value in unused_sources)
+            + ". Confirm that they produced no material candidate or connect the "
+            "candidate ledger to their findings."
+        )
+
+    intake_only = coverage["material_candidate_ids_supported_only_by_intake"]
+    if intake_only:
+        advisories.append(
+            "Resolved material candidates rely only on intake-source evidence: "
+            + ", ".join(repr(value) for value in intake_only)
+            + ". Confirm that the intake contains specific support or seek an "
+            "independent behavioral, technical, lifecycle, or design source."
+        )
+
+    blocked = coverage["externally_blocked_journey_ids_without_alternative_source"]
+    if blocked:
+        advisories.append(
+            "Externally blocked journeys have no linked alternative discovery "
+            "source: "
+            + ", ".join(repr(value) for value in blocked)
+            + ". Check available technical, lifecycle, business, design, historical, "
+            "or credible user evidence before treating the boundary as the end of "
+            "discovery."
+        )
+
+    cross_environment = coverage["journeys_needing_cross_environment_basis"]
+    if cross_environment:
+        advisories.append(
+            "Test-environment evidence supports production-scoped journeys without "
+            "a representative-source mapping, explicit assumption, or scoped "
+            "exception: "
+            + ", ".join(
+                repr(item["journey_id"]) for item in cross_environment
+            )
+            + ". Verify environment equivalence or bound the claim."
+        )
+
+    locale_reviews = coverage["journeys_needing_locale_basis"]
+    if locale_reviews:
+        advisories.append(
+            "Multi-locale journey scope has fewer attributable direct sources or "
+            "evidenced variants than declared locales, without an explicit basis: "
+            + ", ".join(repr(item["journey_id"]) for item in locale_reviews)
+            + ". Inspect each material locale difference or record the justified "
+            "equivalence and residual limitation."
+        )
+    return advisories
+
+
+def _kpi_coherence_advisories(data: dict[str, Any]) -> list[str]:
+    diagnostics = kpi_coherence_diagnostics(data)
+    advisories: list[str] = []
+    unit_mismatches = diagnostics["rate_counting_unit_mismatch_ids"]
+    if unit_mismatches:
+        advisories.append(
+            "Rate or ratio KPIs use different numerator and denominator counting "
+            "units: "
+            + ", ".join(repr(value) for value in unit_mismatches)
+            + ". Align the counted entity or explain a mathematically valid unit "
+            "conversion."
+        )
+    grain_mismatches = diagnostics["rate_grain_mismatch_ids"]
+    if grain_mismatches:
+        advisories.append(
+            "Rate or ratio KPIs appear to mix numerator and denominator entity "
+            "grains: "
+            + ", ".join(repr(value) for value in grain_mismatches)
+            + ". Confirm a shared entity key, deduplication rule, and eligible "
+            "population."
+        )
+    cross_journey = diagnostics["cross_journey_aggregate_review_ids"]
+    if cross_journey:
+        advisories.append(
+            "Cross-journey KPIs combine disjoint value domains or counting units "
+            "without a differentiating dimension: "
+            + ", ".join(repr(value) for value in cross_journey)
+            + ". Establish one coherent shared unit, add the interpretation dimension, "
+            "or split the KPI."
+        )
+    missing_rationale = diagnostics["north_star_ids_missing_scope_rationale"]
+    if missing_rationale:
+        advisories.append(
+            "Broad-scope North Star KPIs lack a scope and aggregation rationale: "
+            + ", ".join(repr(value) for value in missing_rationale)
+            + ". Explain comparability and mix-shift risk, or use a balanced set "
+            "instead of one North Star."
+        )
+    reviewed_north_stars = sorted(
+        set(diagnostics["north_star_scope_review_ids"]) - set(missing_rationale)
+    )
+    if reviewed_north_stars:
+        advisories.append(
+            "Broad-scope North Star KPIs require human confirmation that their "
+            "aggregation remains comparable across roles, value streams, and journey "
+            "types: "
+            + ", ".join(repr(value) for value in reviewed_north_stars)
+            + "."
+        )
+    return advisories
+
+
 def review_advisories(data: dict[str, Any]) -> list[str]:
     """Return deterministic, non-blocking prompts for human review."""
 
@@ -231,6 +350,8 @@ def review_advisories(data: dict[str, Any]) -> list[str]:
     advisories.extend(_core_selection_advisories(data))
     advisories.extend(_uniformity_advisories(data))
     advisories.extend(_anti_circular_advisories(data))
+    advisories.extend(_discovery_evidence_advisories(data))
+    advisories.extend(_kpi_coherence_advisories(data))
     if not schema_at_least(data, (1, 3, 0)):
         advisories.extend(
             "Legacy evidence advisory: " + issue

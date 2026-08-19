@@ -99,6 +99,8 @@ class MeasurementFrameworkRendererTests(unittest.TestCase):
 
     def test_coverage_summaries_expose_type_and_lens_resolutions(self) -> None:
         rendered = render_framework(self.framework)
+        self.assertIn("### Discovery and evidence diagnostics", rendered)
+        self.assertIn("Discovery sources unused by candidate ledger", rendered)
         self.assertIn("### Discovery candidate summary", rendered)
         self.assertIn(
             "| Type | Total | Material | mapped | merged | excluded | unresolved |",

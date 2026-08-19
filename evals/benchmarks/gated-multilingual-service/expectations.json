@@ -1,0 +1,127 @@
+{
+  "benchmark_id": "gated_multilingual_service_v1",
+  "fail_on_baseline_concept_regression": true,
+  "expectations": [
+    {
+      "concept_id": "candidate_customer_service_request",
+      "layer": "discovery_candidates",
+      "match_any": ["service request"],
+      "material": true
+    },
+    {
+      "concept_id": "candidate_customer_balance",
+      "layer": "discovery_candidates",
+      "match_any": ["account balance", "balance check"],
+      "material": true
+    },
+    {
+      "concept_id": "candidate_customer_history",
+      "layer": "discovery_candidates",
+      "match_any": ["transaction history"],
+      "material": true
+    },
+    {
+      "concept_id": "candidate_provider_case_submission",
+      "layer": "discovery_candidates",
+      "match_any": ["case submission"],
+      "material": true
+    },
+    {
+      "concept_id": "journey_customer_service_request",
+      "layer": "journeys",
+      "match_any": ["service request"],
+      "material": true,
+      "allowed_statuses": ["confirmed", "partial", "externally_blocked"]
+    },
+    {
+      "concept_id": "journey_customer_account_review",
+      "layer": "journeys",
+      "match_any": ["account balance", "transaction history"],
+      "material": true,
+      "allowed_statuses": ["confirmed", "partial", "externally_blocked"]
+    },
+    {
+      "concept_id": "journey_provider_case_submission",
+      "layer": "journeys",
+      "match_any": ["case submission"],
+      "material": true
+    },
+    {
+      "concept_id": "objective_customer_self_service",
+      "layer": "objectives",
+      "match_any": [
+        "customer self service",
+        "self service completion",
+        "complete eligible tasks without assisted support"
+      ]
+    },
+    {
+      "concept_id": "objective_provider_resolution",
+      "layer": "objectives",
+      "match_any": [
+        "provider operational resolution",
+        "resolve operational work",
+        "provider operational task completion"
+      ]
+    },
+    {
+      "concept_id": "objective_failure_guardrail",
+      "layer": "objectives",
+      "match_any": [
+        "authentication failure",
+        "processing failure",
+        "reliable authentication",
+        "service reliability"
+      ]
+    },
+    {
+      "concept_id": "kpi_self_service_completion",
+      "layer": "kpis",
+      "match_any": [
+        "self service completion",
+        "service request completion",
+        "customer task completion"
+      ],
+      "allowed_roles": ["outcome"]
+    },
+    {
+      "concept_id": "kpi_provider_resolution",
+      "layer": "kpis",
+      "match_any": [
+        "provider resolution",
+        "case resolution",
+        "provider task completion"
+      ],
+      "allowed_roles": ["outcome", "driver"]
+    },
+    {
+      "concept_id": "kpi_failure_guardrail",
+      "layer": "kpis",
+      "match_any": [
+        "authentication failure",
+        "processing failure",
+        "access failure"
+      ],
+      "allowed_roles": ["guardrail"]
+    }
+  ],
+  "thresholds": {
+    "min_candidate_recall": 1.0,
+    "min_journey_recall": 1.0,
+    "min_objective_recall": 1.0,
+    "min_kpi_recall": 1.0,
+    "min_evidence_traceability_rate": 1.0,
+    "min_formula_specificity_rate": 1.0,
+    "min_requirement_specificity_rate": 1.0,
+    "max_observed_claim_issue_rate": 0.0,
+    "max_intake_only_material_candidate_rate": 0.5
+  },
+  "human_review_questions": [
+    "Did direct-authentication failure reduce evidence maturity without erasing technically confirmed customer journey families?",
+    "Are journeys split by materially different intent and outcome rather than by every route or control?",
+    "Do objectives cover customer value, provider value, and failure or quality risk without inventing corporate strategy?",
+    "Are KPI formulas coherent in counting unit, grain, eligible population, reporting window, and numerator-subset logic?",
+    "Is the absence of an approved North Star handled honestly rather than replaced by a forced aggregate?",
+    "Can a stakeholder understand decisions and evidence limits from Markdown, and can an independent agent consume the JSON without reconstructing strategy?"
+  ]
+}

@@ -62,10 +62,21 @@ be rendered as observed browser execution. User input may confirm a described
 current state but never becomes direct observation merely because it is
 credible.
 
+Evidence eligibility governs maturity, not candidate recall. When direct
+execution is blocked, retain candidates supported by credible technical,
+lifecycle, business, design, historical, or user evidence and classify them at
+the maturity that source can prove. Do not convert `not observed` into `does not
+exist`.
+
 Place `observed_at` on the source. When materially different retrieval times
 matter, create separate source records. A source URL is sufficient when it is
 the stable location of the claim; otherwise use the existing `#locator`
 convention. Do not create screenshot or DOM bundles by default.
+
+Test or staging evidence can support production-scoped analysis only through a
+recorded representative-source binding, explicit equivalence assumption, or
+bounded exception. Apply the same rule when one inspected locale is used for a
+broader locale claim.
 
 ## Target State
 

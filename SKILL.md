@@ -72,7 +72,12 @@ and semantic-alignment work:
 
 1. Capture the intake baseline, then resolve scope, target state, evidence
    roles, and safe boundaries.
-2. Build and close the material journey model.
+2. Build and close the material journey model. Construct expected and
+   source-derived candidates before assigning evidence maturity. When direct
+   access is blocked or partial, use available technical, lifecycle, business,
+   design, historical, or credible user evidence to preserve plausible
+   candidates for explicit resolution and represent mapped journeys as
+   confirmed, planned, partial, or not tested at the maturity actually proved.
 3. Identify and assess objective candidates.
 4. Derive and validate the KPI system.
 5. Decompose KPIs into semantic measurement requirements.
@@ -86,6 +91,13 @@ how a step is executed and the maturity of the resulting claims, never whether
 journey, objective, KPI, and requirement closure are assessed. Do not
 introduce lightweight, standard, enterprise, event-count, or time-boxed
 quality modes.
+
+Direct evidence alone can establish `observed` or `externally_blocked`; lack of
+direct evidence must not erase a material candidate supported by another
+credible source. Use source alternatives conditionally, not as a mandatory
+static-bundle ritual. Stop discovery only when every material expected or
+source-derived candidate is resolved and additional available sources produce
+no new material family.
 
 Ask one consolidated intake when essential context is missing. Ask later only
 for a specific access unblock, a consequential safe-interaction decision, or
@@ -166,8 +178,9 @@ python scripts/render_framework.py measurement-framework.json --output measureme
 
 Use validator `--json` when an artifact-bound diagnostic report is useful. It
 includes the artifact hash, validator and schema versions, computed gate facts,
-evidence-maturity counts, candidate census, errors, and advisories; it is a
-diagnostic view, not a third core artifact. Use renderer `--allow-failed` only
+evidence-maturity counts, candidate census, discovery/evidence coverage, KPI
+coherence checks, errors, and advisories; it is a diagnostic view, not a third
+core artifact. Use renderer `--allow-failed` only
 to inspect a structurally complete working draft; never treat that output as
 an accepted delivery.
 
@@ -178,6 +191,10 @@ Markdown agrees with JSON. An `observed` claim must have timestamped direct
 live/test evidence with a stable locator; an `externally_blocked` claim must
 evidence the attempted boundary. A useful failed draft is still a draft.
 `pass_with_exceptions` is never fully verified.
+
+Before delivery, review test-to-production and multi-locale evidence use. Bind
+representative sources in the intake baseline, state an assumption, or retain a
+bounded exception whenever evidence equivalence is not established.
 
 ## Boundaries
 

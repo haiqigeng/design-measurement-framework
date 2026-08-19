@@ -22,10 +22,12 @@ from diagnostics import (
     GATE_ORDER,
     candidate_census,
     consideration_reciprocity_issues,
+    discovery_evidence_coverage,
     evidence_eligibility_issues,
     evidence_maturity,
     exception_scope_issues,
     gate_facts,
+    kpi_coherence_diagnostics,
     relational_applicability_issues,
     schema_at_least,
 )
@@ -36,7 +38,7 @@ from formula_contract import (
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SCHEMA = ROOT / "schemas" / "measurement-framework.schema.json"
-VALIDATOR_VERSION = "1.3.0"
+VALIDATOR_VERSION = "1.4.0"
 
 CURRENT_ALIGNMENT_ROLES = {"current_implementation", "data_usage"}
 INCOMPLETE_JOURNEY_STATUSES = {"partial", "not_tested", "externally_blocked"}
@@ -1658,6 +1660,8 @@ def build_validation_report(
         "counts": {
             "evidence_maturity": evidence_maturity(data),
             "candidate_census": candidate_census(data),
+            "discovery_evidence_coverage": discovery_evidence_coverage(data),
+            "kpi_coherence": kpi_coherence_diagnostics(data),
         },
         "gate_facts": gate_facts(data),
     }

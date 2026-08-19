@@ -2,6 +2,50 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-20
+
+### Added
+
+- An evidence-limited discovery protocol that preserves material candidates
+  supported by technical, lifecycle, business, design, historical, or credible
+  user evidence when direct exploration is blocked or partial, without
+  overstating observed execution.
+- Computed discovery/evidence diagnostics for representative target coverage,
+  candidate use of discovery-capable sources, intake-only material candidates,
+  blocked journeys without fallback evidence, attributable direct scope, and
+  conditional environment or locale equivalence review.
+- Conservative KPI coherence diagnostics for rate counting units and grains,
+  cross-journey aggregation, broad North Star scope, and mandatory human review
+  of numerator-subset logic.
+- A fixed, manifest-driven analytical release evaluator, gated multilingual
+  benchmark, and human scorecard that detect material concept loss even when a
+  framework remains schema-valid.
+
+### Fixed
+
+- Objective, KPI, dimension, and requirement variant scope now inherits from
+  linked journeys or downstream links instead of defaulting to every variant
+  in unrelated journeys. Explicit broader scope still requires an
+  evidence-backed applicability basis.
+
+### Changed
+
+- Validator diagnostics and rendered Markdown now expose discovery/evidence
+  coverage and KPI coherence review signals. Validator version is `1.4.0`;
+  canonical framework schema remains `1.3.0` because no new authoring fields
+  are required.
+- Acceptance guidance now requires explicit handling of UAT-to-production and
+  multi-locale extrapolation, and checks coherent rate populations,
+  cross-journey aggregation, and North Star mix-shift risk.
+
+### Compatibility
+
+- Schema `1.0.0`, `1.1.0`, `1.2.0`, and `1.3.0` artifacts remain accepted
+  under their versioned blocking behavior. New discovery and KPI diagnostics
+  are non-blocking review advisories.
+- No tracking-plan, GA4 event/parameter, implementation-readiness, mandatory
+  technical-mining, fixed-quota, or case-specific journey contract is added.
+
 ## [1.3.0] - 2026-08-19
 
 ### Added

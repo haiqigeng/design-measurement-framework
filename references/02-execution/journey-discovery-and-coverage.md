@@ -5,6 +5,7 @@
 - [Define a journey](#define-a-journey)
 - [Build the top-down candidate map](#build-the-top-down-candidate-map)
 - [Build the bottom-up candidate universe](#build-the-bottom-up-candidate-universe)
+- [Use the evidence-limited discovery protocol](#use-the-evidence-limited-discovery-protocol)
 - [Explore proportionately](#explore-proportionately)
 - [Cover gated and multi-environment journeys](#cover-gated-and-multi-environment-journeys)
 - [Exercise material states](#exercise-material-states)
@@ -63,6 +64,37 @@ proving that their role is equivalent. Map every scanned navigation item, CTA,
 form, template, entry point, and endpoint to a journey, a merged family, an
 explicit exclusion, or a named unresolved exception.
 
+## Use The Evidence-Limited Discovery Protocol
+
+Build candidates before using evidence maturity to decide what survives. When
+direct browser exploration is unavailable, blocked, partial, or unsafe:
+
+1. retain every material expected candidate already generated from the scope,
+   value streams, roles, lifecycle, and known business model;
+2. record exactly what direct evidence established, including the attempted
+   boundary, without promoting unseen execution to `observed`;
+3. inspect the available alternatives that could reveal a material family:
+   technical route or capability evidence, lifecycle and business-system
+   evidence, future designs, historical contracts, and credible user or
+   stakeholder descriptions;
+4. add or refine candidates supported by those sources and assign the mapped
+   journey `confirmed`, `planned`, `partial`, or `not_tested` maturity as
+   appropriate; and
+5. resolve every candidate as mapped, merged, excluded, or unresolved with an
+   exact reason and exception where required.
+
+Use these alternatives conditionally. Do not require static bundle mining, API
+inspection, or another technical technique when the source is unavailable,
+unsafe, disproportionate, or unlikely to change the candidate universe. Do
+not stop merely because authentication failed. Stop fallback discovery when
+all expected and source-derived material families are resolved and the
+remaining available sources produce no new material family.
+
+Direct evidence controls empirical maturity. Credible indirect evidence
+controls whether a candidate can be confirmed or planned. Neither an access
+failure nor a stronger evidence standard is a reason for a supported material
+candidate to disappear.
+
 ## Explore Proportionately
 
 Build the candidate universe before sampling. Explore by materially distinct
@@ -89,6 +121,12 @@ executed safely in UAT or staging. Link each production target to one or more
 representative evidence sources in the intake baseline. Several language or
 role-specific production targets may legitimately share one test origin; keep
 their locales, audiences, and applicability distinct where meaning differs.
+
+Bind a test source to every production target it represents in the intake
+baseline. When production equivalence or locale parity is not established,
+record a specific assumption or bounded exception. A successful UAT path or
+one inspected locale cannot silently prove every production implementation or
+language variant.
 
 Record only categorical authorization and constraints. Never copy account IDs,
 passwords, tokens, or personal test values into the framework. Exercise every

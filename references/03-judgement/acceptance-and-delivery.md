@@ -25,6 +25,12 @@ Confirm:
 - every `observed` or `externally_blocked` claim has eligible direct evidence,
   source observation time, and a stable locator;
 - discovery candidates cover top-down expectations and bottom-up evidence;
+- a direct access failure did not stop available technical, lifecycle,
+  business, design, historical, or credible user discovery, and every supported
+  material family remains visible at an honest maturity;
+- discovery/evidence diagnostics for unused sources, intake-only candidates,
+  blocked paths, direct-scope attribution, environment equivalence, and locale
+  equivalence were reviewed;
 - material journeys, variants, states, and non-UI outcomes were considered;
 - every material journey explicitly resolves failure, empty, recovery,
   re-entry, and post-conversion states;
@@ -32,6 +38,11 @@ Confirm:
 - objective and journey KPI-role considerations are complete;
 - KPI roles, tiers, North Star choices, formulas, grains, populations, and
   windows are coherent;
+- rate numerator and denominator units, grains, eligible populations, and
+  subset logic are coherent, and cross-journey aggregates do not hide unlike
+  task or value mixes;
+- a broad North Star has a defensible aggregation and mix-shift rationale, or
+  the framework honestly uses no North Star;
 - recommended-core KPIs remain balanced by relevant guardrails;
 - all components and required dimensions map to semantic requirements;
 - current-measurement alignment is complete when applicable;

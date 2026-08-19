@@ -19,7 +19,12 @@ from helpers import (
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from advisories import review_advisories  # noqa: E402
-from diagnostics import candidate_census  # noqa: E402
+from diagnostics import (  # noqa: E402
+    candidate_census,
+    discovery_evidence_coverage,
+    kpi_coherence_diagnostics,
+    relational_applicability_issues,
+)
 from validate_framework import build_validation_report, validate_framework  # noqa: E402
 
 
@@ -297,6 +302,66 @@ class MeasurementFrameworkValidationTests(unittest.TestCase):
                 }
         self.assertEqual(validate_framework(self.framework), [])
 
+    def test_variant_scope_inherits_through_linked_entities(self) -> None:
+        framework = {
+            "document": {"target_state": "as_is"},
+            "journeys": [
+                {
+                    "journey_id": "journey_customer",
+                    "variants": [{"variant_id": "variant_customer"}],
+                },
+                {
+                    "journey_id": "journey_provider",
+                    "variants": [{"variant_id": "variant_provider"}],
+                },
+            ],
+            "objectives": [
+                {
+                    "objective_id": "objective_customer",
+                    "journey_ids": ["journey_customer"],
+                }
+            ],
+            "kpis": [
+                {
+                    "kpi_id": "kpi_customer",
+                    "journey_ids": ["journey_customer"],
+                    "objective_ids": ["objective_customer"],
+                }
+            ],
+            "dimensions": [
+                {"dimension_id": "dimension_customer", "kpi_ids": ["kpi_customer"]}
+            ],
+            "measurement_requirements": [
+                {
+                    "requirement_id": "requirement_customer",
+                    "journey_ids": [],
+                    "kpi_ids": ["kpi_customer"],
+                }
+            ],
+        }
+        self.assertEqual(relational_applicability_issues(framework), [])
+
+        framework["dimensions"][0]["applicability"] = {
+            "journey_variant_ids": ["variant_provider"]
+        }
+        issues = relational_applicability_issues(framework)
+        self.assertTrue(any("$.dimensions" in item for item in issues), issues)
+
+    def test_unrelated_journey_variant_does_not_force_downstream_scope(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        second = copy.deepcopy(self.framework["journeys"][0])
+        second["journey_id"] = "journey_unrelated_reference"
+        second["name"] = "Unrelated reference journey"
+        second["material"] = False
+        second.pop("state_decisions")
+        for step in second["steps"]:
+            step["step_id"] += "_unrelated"
+        for variant in second["variants"]:
+            variant["variant_id"] += "_unrelated"
+        self.framework["journeys"].append(second)
+
+        self.assertEqual(validate_framework(self.framework), [])
+
     def test_broader_business_kpi_without_journey_links_can_use_a_basis(self) -> None:
         upgrade_to_v1_3(self.framework)
         self.framework["document"]["audiences"] = ["Customers", "Providers"]
@@ -416,7 +481,7 @@ class MeasurementFrameworkValidationTests(unittest.TestCase):
             self.framework, errors, artifact_sha256="a" * 64
         )
         self.assertEqual(first, second)
-        self.assertEqual(first["validator_version"], "1.3.0")
+        self.assertEqual(first["validator_version"], "1.4.0")
         self.assertEqual(
             first["counts"]["evidence_maturity"]["journeys"]["observed"], 1
         )
@@ -425,6 +490,8 @@ class MeasurementFrameworkValidationTests(unittest.TestCase):
             "evidence eligibility issues=0",
             first["gate_facts"]["journey_completeness"],
         )
+        self.assertIn("discovery_evidence_coverage", first["counts"])
+        self.assertIn("kpi_coherence", first["counts"])
 
     def test_candidate_census_exposes_target_and_state_coverage(self) -> None:
         upgrade_to_v1_3(self.framework)
@@ -434,6 +501,131 @@ class MeasurementFrameworkValidationTests(unittest.TestCase):
         self.assertTrue(census["intake_baseline_present"])
         self.assertEqual(census["included_targets_without_representative_sources"], [])
         self.assertEqual(census["state_decision_resolutions"]["covered"], 1)
+
+    def test_discovery_coverage_exposes_fallback_and_source_use(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        self.framework["sources"].append(
+            {
+                "source_id": "source_routes",
+                "source_type": "technical_specification",
+                "reference": "Synthetic route inventory",
+                "evidence_role": "data_capability",
+                "state": "as_is",
+                "supports": ["Authenticated route families"],
+            }
+        )
+        coverage = discovery_evidence_coverage(self.framework)
+        self.assertIn(
+            "source_routes",
+            coverage["discovery_source_ids_without_candidate_support"],
+        )
+
+        journey = self.framework["journeys"][0]
+        journey["status"] = "externally_blocked"
+        journey["evidence_refs"] = ["source_site#auth-boundary"]
+        for step in journey["steps"]:
+            step["evidence_refs"] = ["source_site#auth-boundary"]
+        for variant in journey["variants"]:
+            variant["evidence_refs"] = ["source_site#auth-boundary"]
+        self.framework["discovery_candidates"][0]["evidence_refs"] = [
+            "source_site#auth-boundary"
+        ]
+        coverage = discovery_evidence_coverage(self.framework)
+        self.assertIn(
+            "journey_quote",
+            coverage[
+                "externally_blocked_journey_ids_without_alternative_source"
+            ],
+        )
+
+    def test_test_to_production_and_locale_basis_are_diagnostic_only(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        site_source = next(
+            item
+            for item in self.framework["sources"]
+            if item["source_id"] == "source_site"
+        )
+        site_source["source_type"] = "test_website"
+        site_source["reference"] = "https://uat.example.test/quote"
+        self.framework["intake_baseline"]["targets"][0][
+            "representative_source_ids"
+        ] = ["source_business"]
+        self.framework["document"]["locales"] = ["en", "fr"]
+        self.framework["intake_baseline"]["locales"] = ["en", "fr"]
+
+        coverage = discovery_evidence_coverage(self.framework)
+        self.assertEqual(
+            coverage["journeys_needing_cross_environment_basis"][0]["journey_id"],
+            "journey_quote",
+        )
+        self.assertEqual(
+            coverage["journeys_needing_locale_basis"][0]["journey_id"],
+            "journey_quote",
+        )
+        self.assertTrue(
+            any("Test-environment evidence" in item for item in review_advisories(self.framework))
+        )
+        self.assertEqual(validate_framework(self.framework), [])
+
+    def test_representative_test_origin_can_cover_page_specific_sources(self) -> None:
+        upgrade_to_v1_3(self.framework)
+        site_source = next(
+            item
+            for item in self.framework["sources"]
+            if item["source_id"] == "source_site"
+        )
+        site_source["source_type"] = "test_website"
+        site_source["reference"] = "https://uat.example.test/quote"
+        self.framework["sources"].append(
+            {
+                "source_id": "source_uat_root",
+                "source_type": "test_website",
+                "reference": "https://uat.example.test/",
+                "evidence_role": "live_behavior",
+                "state": "as_is",
+                "supports": ["Representative UAT origin"],
+            }
+        )
+        self.framework["intake_baseline"]["targets"][0][
+            "representative_source_ids"
+        ] = ["source_uat_root"]
+
+        coverage = discovery_evidence_coverage(self.framework)
+        self.assertEqual(coverage["journeys_needing_cross_environment_basis"], [])
+
+    def test_rate_unit_and_grain_mismatches_are_review_advisories(self) -> None:
+        kpi = self.framework["kpis"][0]
+        denominator = next(
+            item for item in kpi["formula"]["components"] if item["role"] == "denominator"
+        )
+        denominator["counting_unit"] = "session"
+        denominator["grain"] = "one record per user identifier"
+        diagnostics = kpi_coherence_diagnostics(self.framework)
+        self.assertIn(kpi["kpi_id"], diagnostics["rate_counting_unit_mismatch_ids"])
+        self.assertIn(kpi["kpi_id"], diagnostics["rate_grain_mismatch_ids"])
+        advisories = review_advisories(self.framework)
+        self.assertTrue(any("different numerator and denominator" in item for item in advisories))
+        self.assertTrue(any("mix numerator and denominator" in item for item in advisories))
+
+    def test_cross_journey_and_broad_north_star_need_coherence_review(self) -> None:
+        second = copy.deepcopy(self.framework["journeys"][0])
+        second["journey_id"] = "journey_support"
+        second["name"] = "Resolve a support request"
+        second["value_domains"] = ["support_resolution"]
+        self.framework["journeys"].append(second)
+        kpi = self.framework["kpis"][0]
+        kpi["journey_ids"].append(second["journey_id"])
+        kpi["segmentation"]["dimension_ids"] = []
+        kpi["tier"] = "north_star"
+
+        diagnostics = kpi_coherence_diagnostics(self.framework)
+        self.assertIn(
+            kpi["kpi_id"], diagnostics["cross_journey_aggregate_review_ids"]
+        )
+        self.assertIn(kpi["kpi_id"], diagnostics["north_star_scope_review_ids"])
+        self.assertIn(
+            kpi["kpi_id"], diagnostics["north_star_ids_missing_scope_rationale"]
+        )
 
     def test_v1_schema_version_remains_compatible(self) -> None:
         downgrade_formula_contract(self.framework, schema_version="1.0.0")

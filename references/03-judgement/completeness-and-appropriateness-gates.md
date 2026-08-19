@@ -51,6 +51,13 @@ Require all of the following:
 - link every partial, not-tested, or externally blocked material state to an exception;
 - require timestamped direct live/test evidence with a stable locator for
   every `observed` claim and every claimed external boundary;
+- after a direct access boundary, inspect available technical, lifecycle,
+  business, design, historical, or credible user evidence before concluding
+  discovery, and preserve every supported material candidate at its honest
+  maturity;
+- review discovery-capable sources that support no candidate, material
+  candidates supported only by intake, and blocked journeys without an
+  alternative source;
 - state the downstream impact of every residual gap.
 
 Fail when a material candidate is silently absent or an unresolved candidate has
@@ -66,6 +73,9 @@ Require every included journey to:
 - group equivalent variants without collapsing materially different ones;
 - exclude aimless paths and page/click inventories;
 - use evidence and target state consistently;
+- keep production scope distinct from test evidence and support environment or
+  locale extrapolation with a representative-source binding, explicit
+  assumption, or bounded exception;
 - apply a proportional coverage strategy to large or combinatorial spaces.
 
 Fail when journey quantity substitutes for goal/outcome reasoning.
@@ -127,6 +137,11 @@ Require every accepted KPI to:
 - support a plausible decision and action;
 - have a coherent owner role;
 - use a dimensionally valid formula, grain, population, and time basis;
+- make rate numerators conceptual subsets of compatible denominators, with the
+  same counting unit, entity grain, eligibility, deduplication, and time basis
+  unless a valid conversion is explicit;
+- combine multiple journeys only through a coherent shared unit, a required
+  differentiating dimension, or separate KPIs;
 - avoid vanity, duplicate, and redundant definitions;
 - use guardrails where optimizing the KPI can plausibly degrade quality or value;
 - balance core outcome or driver KPIs with their explicitly proposed guardrail
@@ -135,6 +150,8 @@ Require every accepted KPI to:
 - distinguish outcome, driver, guardrail, and diagnostic roles honestly;
 - use a North Star only when one durable metric can represent its declared
   scope without hiding essential counter-outcomes;
+- require a broad North Star to explain comparability, aggregation, and
+  mix-shift risk across roles, value streams, or task types;
 - give multiple North Stars explicit, non-overlapping applicability and rationale;
 - avoid invented targets and unsupported benchmarks;
 - state evidence and assumption status;

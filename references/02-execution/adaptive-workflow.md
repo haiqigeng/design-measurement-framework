@@ -64,19 +64,28 @@ Read `journey-discovery-and-coverage.md` and `safe-interaction.md`.
 2. Build the bottom-up candidate universe from every available source.
 3. Explore representative route, template, component, state, and funnel
    families interactively when safe and possible.
-4. Capture material branches, failures, empty states, re-entry, and
+4. When direct exploration is blocked or partial, continue conditionally with
+   available technical routes or capabilities, lifecycle or business-system
+   evidence, designs, historical contracts, and credible user descriptions.
+   Let these sources confirm or plan mapped journeys without relabeling
+   execution as observed.
+5. Capture material branches, failures, empty states, re-entry, and
    post-conversion behavior.
-5. Resolve every discovery candidate as mapped, merged, excluded, or
+6. Resolve every discovery candidate as mapped, merged, excluded, or
    unresolved with a named exception.
-6. Build the final journey inventory and record evidence status separately
+7. Build the final journey inventory and record evidence status separately
    from analyst resolution.
-7. Record explicit decisions for failure, empty, recovery, re-entry, and
+8. Record explicit decisions for failure, empty, recovery, re-entry, and
    post-conversion on each material journey. A decision may be covered, merged,
    not applicable, or unresolved; it does not force execution.
-8. Run `scripts/candidate_census.py` when useful to expose unresolved material
+9. Run `scripts/candidate_census.py` when useful to expose unresolved material
    candidates, journeys without candidates, state-decision coverage, and
    production targets without representative sources.
-9. Apply journey completeness and appropriateness gates.
+10. Review the validator's discovery/evidence diagnostics for unused
+    discovery-capable sources, intake-only material candidates, blocked
+    journeys without fallback evidence, and environment or locale
+    extrapolation.
+11. Apply journey completeness and appropriateness gates.
 
 Do not derive objectives from an open, silent material journey gap. Continue
 with explicit exceptions when access or evidence cannot be obtained.
@@ -108,7 +117,10 @@ Read `kpi-derivation.md`.
    every material journey.
 5. Record every consideration, including rejected and not-applicable decisions.
 6. Specify every accepted KPI precisely and select the recommended core.
-7. Apply KPI completeness and appropriateness gates.
+7. Check rate numerator and denominator units, grains, eligible populations,
+   and subset logic. Review cross-journey aggregation and broad North Star
+   comparability rather than assuming unlike tasks can be averaged safely.
+8. Apply KPI completeness and appropriateness gates.
 
 Comprehensive means every justified need is considered and resolved. It does
 not mean copying every metric from a library. Do not force one core KPI per
@@ -156,7 +168,10 @@ Read the judgement references.
    overall gate.
 6. Compare resolved delivery scope with the intake baseline and reject any
    unapproved substitution.
-7. Validate `measurement-framework.json` with the supplied validator. Use
+7. Resolve or explicitly accept every non-blocking discovery/evidence and KPI
+   coherence advisory; a clean structural result is not proof that the
+   candidate universe or KPI system is analytically sufficient.
+8. Validate `measurement-framework.json` with the supplied validator. Use
    `--json` when reviewers need an artifact-bound hash, computed counts,
    advisories, and gate facts that can be reproduced independently.
 
